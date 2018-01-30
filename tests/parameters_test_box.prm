@@ -1,0 +1,81 @@
+# Listing of Parameters
+# ---------------------
+subsection PostProcess::PostProcessBEMStokes<3>
+  set Consider rigid rotations                 = true
+  set External grid dimension                  = 1681
+  set External grid file name                  = ../external_grids/cross.txt
+  set Input grid base name                     = ../../../../BEMStokes/debug_grids/sphere_mesh_3d_
+  set Input grid format                        = msh
+  set Number of global_refinement for ext wall = 2
+  set Path to stored results                   = ../../../tests/box/
+  # Bool set to create Post Process wall 0.
+  set Post Process Wall 0 bool                 = false
+
+  # Bool set to create Post Process wall 1.
+  set Post Process Wall 1 bool                 = false
+
+  # Bool set to create Post Process wall 2.
+  set Post Process Wall 2 bool                 = false
+
+  # Bool set to create Post Process wall 3.
+  set Post Process Wall 3 bool                 = false
+
+  # Bool set to read a box.
+  set Read box                                 = true
+  set Run 2d simulation                        = true
+  set Run 3d simulation                        = true
+  set Total number of frames                   = 120
+
+  # Bool set to create wall 0.
+  set Wall 0 bool                              = true
+
+  # List of the spans of the wall 0. If -1 we intend infinite.
+  set Wall 0 spans                             = 80,0,80
+
+  # Bool set to create wall 1.
+  set Wall 1 bool                              = false
+
+  # List of the spans of the wall 1. If -1 we intend infinite.
+  set Wall 1 spans                             = 80,0,80
+
+  # Bool set to create wall 2.
+  set Wall 2 bool                              = false
+
+  # List of the spans of the wall 2. If -1 we intend infinite.
+  set Wall 2 spans                             = 80,0,80
+
+  # Bool set to create wall 3.
+  set Wall 3 bool                              = false
+
+  # List of the spans of the wall 3. If -1 we intend infinite.
+  set Wall 3 spans                             = 5,5,0
+
+  # List of the positions of all the centers of the walls.
+  set Wall center position wall 0              = 0,0,0
+
+  # List of the positions of all the centers of the walls.
+  set Wall center position wall 1              = 0,1.6,0
+
+  # List of the positions of all the centers of the walls.
+  set Wall center position wall 2              = 0,1.2,0
+
+  # List of the positions of all the centers of the walls.
+  set Wall center position wall 3              = 0,-10,0
+end
+
+
+subsection deal2lkit::ParsedQuadrature<2>
+  # In one space dimension, the given base formula is copied and scaled onto a
+  # given number of subintervals of length 1/repetitions. In more than one
+  # space dimension, the resulting quadrature formula is constructed in the
+  # usual way by building the tensor product of the respective iterated
+  # quadrature formula in one space dimension.
+  set Number of repetitions  = 1
+
+  # The number of quadrature points in each coordinate direction. (Avaible
+  # only for gauss otherwise it should be 0)
+  set Quadrature order       = 8
+
+  # Quadrature rule:gauss|midpoint|milne|simpson|trapez|weddle
+  set Quadrature to generate = gauss
+end
