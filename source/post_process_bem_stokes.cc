@@ -1337,7 +1337,7 @@ namespace PostProcess
 
 
       }
-    rigid_velocities.print(std::cout);
+    // rigid_velocities.print(std::cout);
     // pcout<<external_grid[0]<<" "<<external_velocities[0]<<" "<<external_velocities[external_velocities.size()/dim/dim]<<" "<<external_velocities[external_velocities.size()/dim*2]<<" "<<std::endl;
     // external_velocities.print(std::cout);
 
