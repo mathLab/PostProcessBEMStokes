@@ -99,7 +99,9 @@ namespace PostProcess
     n_mpi_processes(Utilities::MPI::n_mpi_processes(mpi_communicator)),
     pcout (std::cout,
            (this_mpi_process
-            == 0))
+            == 0)),
+    dpcout(std::cout)
+
   {}
 
   template <>
@@ -127,7 +129,9 @@ namespace PostProcess
     n_mpi_processes(Utilities::MPI::n_mpi_processes(mpi_communicator)),
     pcout (std::cout,
            (this_mpi_process
-            == 0))
+            == 0)),
+    dpcout(std::cout)
+
   {}
 
   template <int dim>
@@ -177,10 +181,16 @@ namespace PostProcess
     add_parameter(prm, &stored_results_path, "Path to stored results", "../../BEMStokes/build/",
                   Patterns::Anything());
 
+
+    add_parameter(prm, &velocity_kind, "Kind of velocity to be analysed", "Total",
+                  Patterns::Selection("Total|BodyFrame"));
+
     add_parameter(prm, &external_grid_dimension, "External grid dimension","200",Patterns::Integer());
 
 
     add_parameter(prm, &create_grid_in_deal, "Create the grid inside the code","false", Patterns::Bool());
+
+    add_parameter(prm, &extra_debug_info, "Print extra debug information", "false", Patterns::Bool());
 
     // prm.declare_entry("External grid file name", "../external_grid/cross.txt",
     //       Patterns::Anything());
@@ -307,6 +317,7 @@ namespace PostProcess
   void PostProcessBEMStokes<dim>::parse_parameters (ParameterHandler &prm)
   {
     ParameterAcceptor::parse_parameters(prm);
+    dpcout.set_condition(extra_debug_info && this_mpi_process == 0);
 
     // After declaring all these parameters to the ParameterHandler object,
     // let's read an input file that will give the parameters their values. We
@@ -871,26 +882,26 @@ namespace PostProcess
   {
 
     std::string filename_vel, filename_forces, filename_shape_vel, filename_DN_rigid, filename_rigid, filename_total_vel;
-    pcout<<stored_results_path+"stokes_forces_" + Utilities::int_to_string(frame) + ".bin"<<std::endl;
+    dpcout<<stored_results_path+"stokes_forces_" + Utilities::int_to_string(frame) + ".bin"<<std::endl;
     filename_forces = stored_results_path+"stokes_forces_" + Utilities::int_to_string(frame) + ".bin";
     std::ifstream forces(filename_forces.c_str());
     stokes_forces.block_read(forces);
     // cm_stokes.distribute(stokes_forces);
 
     filename_vel = stored_results_path+"stokes_rigid_vel_" + Utilities::int_to_string(frame) + ".bin";
-    pcout<<filename_vel<<std::endl;
+    dpcout<<filename_vel<<std::endl;
     std::ifstream veloc(filename_vel.c_str());
     rigid_puntual_velocities.block_read(veloc);
     // cm_stokes.distribute(rigid_puntual_velocities);
 
     filename_shape_vel = stored_results_path+"shape_velocities_" + Utilities::int_to_string(frame) + ".bin";
-    pcout<<filename_shape_vel<<std::endl;
+    dpcout<<filename_shape_vel<<std::endl;
     std::ifstream s_vel(filename_shape_vel.c_str());
     shape_velocities.block_read(s_vel);
     // cm_stokes.distribute(shape_velocities);
 
     filename_total_vel = stored_results_path+"total_velocities_" + Utilities::int_to_string(frame) + ".bin";
-    pcout<<filename_total_vel<<std::endl;
+    dpcout<<filename_total_vel<<std::endl;
     std::ifstream t_vel(filename_total_vel.c_str());
     total_velocities.block_read(t_vel);
     // cm_stokes.distribute(total_velocities);
@@ -898,13 +909,13 @@ namespace PostProcess
     for (unsigned int i=0; i<num_rigid; ++i)
       {
         filename_DN_rigid = stored_results_path+"DN_rigid_mode_" + Utilities::int_to_string(i) + "_frame_"+Utilities::int_to_string(frame)+".bin";
-        pcout<<filename_DN_rigid<<std::endl;
+        dpcout<<filename_DN_rigid<<std::endl;
         std::ifstream dn_i(filename_DN_rigid.c_str());
         DN_N_rigid[i].block_read(dn_i);
       }
 
     filename_rigid = stored_results_path+"4_6_rigid_velocities_"+Utilities::int_to_string(frame)+".bin";
-    pcout<<filename_rigid<<std::endl;
+    dpcout<<filename_rigid<<std::endl;
     std::ifstream rv46(filename_rigid.c_str());
     rigid_velocities.block_read(rv46);
 
@@ -1005,7 +1016,9 @@ namespace PostProcess
     // {
     //   real_stokes_forces.sadd(1., +rigid_velocities(i), DN_N_rigid[i]);
     // }
-    real_velocities.sadd(0.,1.,total_velocities);
+    pcout<<real_velocities.size()<<" "<<total_velocities.size()<<std::endl;
+    real_velocities = total_velocities;
+    // real_velocities.sadd(0.,1.,total_velocities);
     // pcout<<real_velocities.l2_norm()<<" : ";
     // real_velocities.sadd(0.,1.,shape_velocities);
     // real_velocities.sadd(1.,-1.,rigid_puntual_velocities);
@@ -1304,11 +1317,27 @@ namespace PostProcess
         //We normalize using the rigid puntual velocity of the zeroth point
         //for(unsigned int j=0; j<dim; ++j)
         //  external_velocities(i*dim+j)/=rigid_puntual_velocities(0+j)+1;
+
+        if (velocity_kind == "BodyFrame")
+          {
+            if (dim == 3)
+              {
+                external_velocities[i+0*external_velocities.size()/dim] += rigid_velocities[4] * (0.+external_grid[i][2]) - rigid_velocities[5] * (0.+external_grid[i][1])-rigid_velocities[0];
+                external_velocities[i+1*external_velocities.size()/dim] += rigid_velocities[5] * (0.+external_grid[i][0]) - rigid_velocities[3] * (0.+external_grid[i][2])-rigid_velocities[1];
+                external_velocities[i+2*external_velocities.size()/dim] += rigid_velocities[3] * (0.+external_grid[i][1]) - rigid_velocities[4] * (0.+external_grid[i][0])-rigid_velocities[2];
+              }
+            else
+              {
+                external_velocities[i+0*external_velocities.size()/dim] += - rigid_velocities[2] * (0.+external_grid[i][1]) - rigid_velocities[0];
+                external_velocities[i+1*external_velocities.size()/dim] +=   rigid_velocities[2] * (0.+external_grid[i][0]) - rigid_velocities[1];
+              }
+          }
         for (unsigned j=0; j<dim; ++j)
           mean_external_velocities(i+j*external_velocities.size()/dim)+=external_velocities(i+j*external_velocities.size()/dim);
 
 
       }
+    rigid_velocities.print(std::cout);
     // pcout<<external_grid[0]<<" "<<external_velocities[0]<<" "<<external_velocities[external_velocities.size()/dim/dim]<<" "<<external_velocities[external_velocities.size()/dim*2]<<" "<<std::endl;
     // external_velocities.print(std::cout);
 

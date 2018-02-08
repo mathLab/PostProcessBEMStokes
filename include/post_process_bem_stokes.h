@@ -185,8 +185,11 @@ namespace PostProcess
     std::string external_grid_filename;
     std::string stored_results_path;
 
+    std::string velocity_kind;
+
     // std_cxx11::shared_ptr<Quadrature<dim-1> > quadrature;
     ParsedQuadrature<dim-1> quadrature;
+    bool extra_debug_info;
 
     bool run_2d, run_3d;
     bool run_in_this_dimension;
@@ -280,6 +283,7 @@ namespace PostProcess
     unsigned int n_mpi_processes;
 
     ConditionalOStream     pcout;
+    ConditionalOStream dpcout;
 
     IndexSet body_cpu_set;
 
