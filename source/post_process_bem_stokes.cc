@@ -164,9 +164,9 @@ namespace PostProcess
     //                   Patterns::Bool());
 
 
-    add_parameter(prm, &input_grid_base_name, "Input grid base name", "../../BEMStokes/Guasto_input_grids_new_spline/single_mesh_3d_",
+    add_parameter(prm, &input_grid_base_name, "Input grid base name (for testing, unused in real PostProcessBEMStokes)", "../../BEMStokes/Guasto_input_grids_new_spline/single_mesh_3d_",
                   Patterns::Anything());
-    add_parameter(prm, &input_grid_format, "Input grid format", "msh",
+    add_parameter(prm, &input_grid_format, "Input grid format (for testing, unused in real PostProcessBEMStokes)", "msh",
                   Patterns::Anything());
 
     // prm.declare_entry("Input grid base name", "../input_grids/try_",
@@ -841,11 +841,11 @@ namespace PostProcess
     DoFHandler<dim-1, dim> frame_map_dh(frame_tria);
     // std::vector<Point<dim> > frame_support_points(map_dh.n_dofs());
     bool print(true);
-    std::string filename = input_grid_base_name+Utilities::int_to_string(frame)+"."+input_grid_format;
-    pcout << "Analyzing file " << filename << std::endl;
+    // std::string filename = input_grid_base_name+Utilities::int_to_string(frame)+"."+input_grid_format;
+    // pcout << "Analyzing file " << filename << std::endl;
     pcout << "Analyzing frame = "<< frame << " over " << n_frames << std::endl;
-    std::ifstream in;
-    in.open (filename);
+    // std::ifstream in;
+    // in.open (filename);
     read_input_triangulation(stored_results_path+"euler_tria_"+Utilities::int_to_string(frame),"bin",frame_tria);
     frame_map_dh.distribute_dofs(*fe_map);
     DoFRenumbering::component_wise (frame_map_dh);

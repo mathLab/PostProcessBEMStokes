@@ -4,8 +4,8 @@ subsection PostProcess::PostProcessBEMStokes<3>
   set Consider rigid rotations                 = true
   set External grid dimension                  = 1681
   set External grid file name                  = ../external_grids/cross.txt
-  set Input grid base name                     = ../../../../BEMStokes/debug_grids/sphere_mesh_3d_
-  set Input grid format                        = msh
+  set Input grid base name (for testing, unused in real PostProcessBEMStokes)                     = ../../../../BEMStokes/debug_grids/sphere_mesh_3d_
+  set Input grid format (for testing, unused in real PostProcessBEMStokes)                       = msh
   set Number of global_refinement for ext wall = 2
   set Path to stored results                   = ../../../tests/box/
   # Bool set to create Post Process wall 0.

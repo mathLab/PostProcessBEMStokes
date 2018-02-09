@@ -1,7 +1,7 @@
 subsection PostProcess::PostProcessBEMStokes<2>
   set Total number of frames 	    = 120
-  set Input grid base name	    = ../../../debug_grids/circle_
-  set Input grid format		    = inp
+  set Input grid base name (for testing, unused in real PostProcessBEMStokes)	    = ../../../debug_grids/circle_
+  set Input grid format (for testing, unused in real PostProcessBEMStokes)		    = inp
   set External grid file name   = ../external_grids/grid_rot.txt
   set External grid dimension  = 1681
   set Path to stored results  = ../../../tests/stored_result/
