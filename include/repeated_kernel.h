@@ -1,3 +1,19 @@
+// ---------------------------------------------------------------------
+//
+// Copyright (C) 2014 - 2018 by the BEMStokes authors.
+//
+// This file is part of the BEMStokes library.
+//
+// The BEMStokes is free software; you can use it, redistribute
+// it, and/or modify it under the terms of the GNU Lesser General
+// Public License version 2.1 as published by the Free Software Foundation.
+// The full text of the license can be found in the file LICENSE at
+// the top level of the BEMStokes distribution.
+//
+// Authors: Nicola Giuliani, Luca Heltai, Antonio DeSimone
+//
+// ---------------------------------------------------------------------
+
 #ifndef __mathlab__repeated_kernel_h // Avoid double definitions
 #define __mathlab__repeated_kernel_h
 

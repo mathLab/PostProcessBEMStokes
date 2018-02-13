@@ -1,4 +1,19 @@
-//In questo modo usi una HEADER GUARD, lo fa solo la prima volta che includi il file post_process_bem_stokes.h
+// ---------------------------------------------------------------------
+//
+// Copyright (C) 2014 - 2018 by the BEMStokes authors.
+//
+// This file is part of the BEMStokes library.
+//
+// The BEMStokes is free software; you can use it, redistribute
+// it, and/or modify it under the terms of the GNU Lesser General
+// Public License version 2.1 as published by the Free Software Foundation.
+// The full text of the license can be found in the file LICENSE at
+// the top level of the BEMStokes distribution.
+//
+// Authors: Nicola Giuliani, Luca Heltai, Antonio DeSimone
+//
+// ---------------------------------------------------------------------
+
 #ifndef __post_process_bem_stokes_h
 #define __post_process_bem_stokes_h
 // @sect3{Include files}
@@ -270,7 +285,7 @@ namespace PostProcess
     std::vector<Point<dim> > wall_positions;
 
     unsigned int delta_frame;
-    
+
     unsigned int kernel_wall_orientation;
     Point<dim> kernel_wall_position;
 
