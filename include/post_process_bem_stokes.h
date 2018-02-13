@@ -269,6 +269,8 @@ namespace PostProcess
 
     std::vector<Point<dim> > wall_positions;
 
+    unsigned int delta_frame;
+    
     unsigned int kernel_wall_orientation;
     Point<dim> kernel_wall_position;
 

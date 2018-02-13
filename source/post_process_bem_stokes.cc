@@ -192,6 +192,9 @@ namespace PostProcess
 
     add_parameter(prm, &extra_debug_info, "Print extra debug information", "false", Patterns::Bool());
 
+    add_parameter(prm, &delta_frame, "Delta between frames","1",Patterns::Integer());
+
+
     // prm.declare_entry("External grid file name", "../external_grid/cross.txt",
     //       Patterns::Anything());
     //
@@ -1551,7 +1554,7 @@ namespace PostProcess
     pcout<<"compute euler vector"<<std::endl;
     compute_euler_vector(euler_vec, start_frame);
     mappingeul = SP(new MappingFEField<dim-1, dim>(map_dh,euler_vec));
-    for (unsigned int i=start_frame; i<=end_frame; ++i)
+    for (unsigned int i=start_frame; i<=end_frame; i=i+delta_frame)
       {
         if (i>start_frame)
           {
@@ -1973,7 +1976,7 @@ namespace PostProcess
   template<int dim>
   void PostProcessBEMStokes<dim>::reinit_for_new_frame(unsigned int frame)
   {
-    compute_euler_vector(euler_vec,(frame+1)%n_frames);
+    compute_euler_vector(euler_vec,(frame+delta_frame)%n_frames);
     external_velocities = 0.;
 
   }
