@@ -1567,7 +1567,7 @@ namespace PostProcess
 
         pcout<< "Computing the exterior solution on the grid " << external_grid_filename << std::endl;
         compute_real_forces_and_velocities();
-        external_grid.resize(1);
+        // external_grid.resize(1);
         // std::vector<Point<dim> > new_ext_grid(1);
         // external_grid[0][0]=40;
         // external_grid[0][1]=4;
@@ -1591,6 +1591,42 @@ namespace PostProcess
     pcout<<"Computing the average on the stroke"<<std::endl;
     compute_average(start_frame, end_frame);
     MPI::COMM_WORLD.Barrier();
+
+
+  }
+
+  // @sect4{BEMProblem::run}
+
+  // This is the compose functions that performs a mean over all the previously computed outer flow fields
+  template <int dim>
+  void PostProcessBEMStokes<dim>::compose(unsigned int start_frame, unsigned int end_frame)
+  {
+    pcout<<"Composing the flow field reconstructions to compute the average on the stroke"<<std::endl;
+    // As first step we convert the bool parameters into vectors.
+    convert_bool_parameters();
+
+    // We retrieve the Finite Element System for the exterior grid
+    grid_fe = SP(parsed_grid_fe());
+
+
+    pcout<<"read external grid"<<std::endl;
+    read_external_grid(external_grid_filename, external_grid);
+
+    grid_dh.distribute_dofs(*grid_fe);
+    DoFRenumbering::component_wise(grid_dh);
+    mean_external_velocities.reinit(grid_dh.n_dofs());
+    external_velocities.reinit(grid_dh.n_dofs());
+    for (unsigned int frame=start_frame; frame<=end_frame; frame=frame+delta_frame)
+      {
+        std::string file_name_vel;
+        file_name_vel = "stokes_exterior_" + Utilities::int_to_string(frame) + ".bin";
+        std::ifstream rvel (file_name_vel.c_str());
+        external_velocities.block_read(rvel);
+        Assert(external_velocities.size()==grid_dh.n_dofs(), ExcInternalError());
+        pcout<<"reducing frame "<< frame <<std::endl;
+        mean_external_velocities.sadd(1.,1.,external_velocities);
+      }
+    compute_average(start_frame, end_frame);
 
 
   }
@@ -1955,7 +1991,9 @@ namespace PostProcess
             // dataout_data.add_data_vector(rigid_puntual_velocities, std::vector<std::string > (dim,"rigid_vel"), DataOut<2, DoFHandler<2, dim> >::type_dof_data, data_component_interpretation);
             // dataout_data.add_data_vector(shape_velocities, std::vector<std::string > (dim,"shape_velocities"), DataOut<2, DoFHandler<2, dim> >::type_dof_data, data_component_interpretation);
             dataout_data.add_data_vector(real_velocities, std::vector<std::string > (dim,"real_velocities"), DataOut<dim-1, DoFHandler<dim-1, dim> >::type_dof_data, data_component_interpretation);
-            dataout_data.build_patches();
+            dataout_data.build_patches(*mappingeul,
+                                       fe_stokes->degree,
+                                       DataOut<dim-1, DoFHandler<dim-1, dim> >::curved_inner_cells);
 
             std::string filename_data;
             filename_data="original_data_at_frame_"+Utilities::int_to_string(frame)+".vtu";
@@ -2036,9 +2074,9 @@ namespace PostProcess
       }
     if (create_grid_in_deal)
       {
-        if (dim==3)
-          for (unsigned int i=0; i<mean_red_vel.size()/dim; ++i)
-            mean_red_vel(i+mean_red_vel.size()/dim)=0;
+        // if (dim==3)
+        //   for (unsigned int i=0; i<mean_red_vel.size()/dim; ++i)
+        //     mean_red_vel(i+mean_red_vel.size()/dim)=0;
 
         std::vector<DataComponentInterpretation::DataComponentInterpretation>
         data_component_interpretation

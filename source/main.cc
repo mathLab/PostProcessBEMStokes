@@ -40,7 +40,12 @@ int main (int argc, char **argv)
 
       PostProcessBEMStokes<DIMENSION> post_process(MPI_COMM_WORLD);
       ParameterAcceptor::initialize(pname, pname2);
-      post_process.run(start_frame, end_frame);
+      if (compose==1)
+        post_process.compose(start_frame, end_frame);
+      else if (compose == 0 )
+        post_process.run(start_frame, end_frame);
+      else
+        AssertThrow(false, ExcNotImplemented());
     }
   catch (std::exception &exc)
     {

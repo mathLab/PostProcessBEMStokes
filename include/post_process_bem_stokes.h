@@ -156,6 +156,10 @@ namespace PostProcess
     /// inputs from the storage dir. Then, it loads/creates the external grid and it values the velocity field on the points of this exterior grid.
     void run(unsigned int start_frame=0, unsigned int end_frame=120);
 
+    /// The second driver function of PostProcessBEMStokes. It takes as input the start  and end frames. Then it loads the previously computed output results (made with run)
+    /// and compose them to obtain a mean value.
+    void compose(unsigned int start_frame=0, unsigned int end_frame=120);
+
     /// This function: 1) reduces the split exterior velocity result on processor 0 2) it forces processor 0 to output the reduced velocity results.
     void reduce_output_grid_result(const unsigned int frame);
 
