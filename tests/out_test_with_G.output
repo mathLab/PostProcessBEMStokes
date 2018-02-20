@@ -1,7 +1,7 @@
 Test that the BEM is able to recover the Fundamental Solution outside
 Testing for degree = 1
 reading ../../../tests/box/reference_tria.bin
-There are 1158 degrees of freedom
+There are 1158 degrees of freedom from the stokes system
 read external grid
 Creating planes as external grid in dealii
 creating post process wall with id 0

@@ -5,7 +5,7 @@ Adding box.
 ../../../tests/box/box.inp
 read
 merged
-There are 2436 degrees of freedom
+There are 2436 degrees of freedom from the stokes system
 read external grid
 Creating planes as external grid in dealii
 creating post process wall with id 0

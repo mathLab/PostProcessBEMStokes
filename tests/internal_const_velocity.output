@@ -9,7 +9,7 @@ Adding the wall to the tria
 Adding post process wall 0
 External grid, cells 64 , dofs 81
 resize
-There are 1158 degrees of freedom
+There are 1158 degrees of freedom from the stokes system
 compute proc props
 computing
  Stokes Solution norms: forces 0 0 , velocities 1 34.0294 
