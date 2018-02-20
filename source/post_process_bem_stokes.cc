@@ -14,6 +14,10 @@
 
 #include <deal.II/lac/full_matrix.h>
 #include <deal.II/lac/vector.h>
+#include <deal.II/lac/sparse_matrix.h>
+#include <deal.II/lac/dynamic_sparsity_pattern.h>
+#include <deal.II/lac/solver_cg.h>
+#include <deal.II/lac/precondition.h>
 
 #include <deal.II/grid/tria.h>
 #include <deal.II/grid/tria_iterator.h>
@@ -84,9 +88,13 @@ namespace PostProcess
     parsed_fe_stokes("Finite Element Stokes","FESystem<2,3>[FE_Q<2,3>(1)^3]","u,u,u",3),//,"FESystem<2,3>[FE_Q<2,3>(1)^3]","u,u,u",dim),
     parsed_fe_mapping("Finite Element Mapping","FESystem<2,3>[FE_Q<2,3>(1)^3]","u,u,u",3),//,"FESystem<2,3>[FE_Q<2,3>(1)^3]","u,u,u",dim),
     parsed_grid_fe("Finite Element External Grid","FESystem<2,3>[FE_Q<2,3>(1)^3]","u,u,u",3),
+    parsed_box_fe_vector("Finite Element External Box Vector","FESystem<3,3>[FE_Q<3,3>(1)^3]","u,u,u",3),
+    parsed_box_fe_scalar("Finite Element External Box Scalar","FE_Q(1)"),
     map_dh(tria),
     dh_stokes(tria),
     grid_dh(ext_tria),
+    box_dh_vector(box_tria),
+    box_dh_scalar(box_tria),
     mappingeul(NULL),
     rotation_matrix(3,3),
     wall_bool(8, false),
@@ -190,6 +198,8 @@ namespace PostProcess
 
     add_parameter(prm, &create_grid_in_deal, "Create the grid inside the code","false", Patterns::Bool());
 
+    add_parameter(prm, &create_ext_box_bool, "Create a full dim-D box","false", Patterns::Bool());
+
     add_parameter(prm, &extra_debug_info, "Print extra debug information", "false", Patterns::Bool());
 
     add_parameter(prm, &delta_frame, "Delta between frames","1",Patterns::Integer());
@@ -253,11 +263,25 @@ namespace PostProcess
                       Patterns::List(Patterns::Double(),dim,dim));
 
         add_parameter(prm, &first_index_box, "First Index for Box","0",Patterns::Integer());
+
+
       }
     add_parameter(prm, &post_process_wall_bool_0,"Post Process Wall 0 bool","true",
                   Patterns::Bool(),"Bool set to create Post Process wall 0.");
+
+    add_parameter(prm, &post_process_wall_bool_0,"Post Process box","false",
+                  Patterns::Bool(),"Create a box to examine the velocity field.");
+
+
     if (dim == 3)
       {
+        add_parameter(prm, &point_box_1,"Lower left angle for outside box","-10,-10,-10",
+                      Patterns::List(Patterns::Double(),dim,dim),"Coordinates of first point for outside box creation");
+
+        add_parameter(prm, &point_box_2,"Upper right angle for outside box","10,10,10",
+                      Patterns::List(Patterns::Double(),dim,dim),"Coordinates of second point for outside box creation");
+
+
         add_parameter(prm, &post_process_wall_bool_1,"Post Process Wall 1 bool","false",
                       Patterns::Bool(),"Bool set to create Post Process wall 1.");
 
@@ -300,6 +324,8 @@ namespace PostProcess
     add_parameter(prm, &kernel_wall_orientation, "Kernel Wall orientation","1",Patterns::Integer());
 
     add_parameter(prm, &n_rep_ext_wall_ref, "Number of global_refinement for ext wall","20",Patterns::Integer());
+
+    add_parameter(prm, &n_rep_ext_box_ref, "Number of global_refinement for ext box","5",Patterns::Integer());
 
     add_parameter(prm, &wall_threshold,"Wall Refinement Threshold","1.",
                   Patterns::Double(),"Minimum diameter you want for the wall at its center.");
@@ -591,12 +617,18 @@ namespace PostProcess
     // depending on the user choice we can create internally the grid in deal.ii or read by file. We have left the choice with external_grid_dimension==1681 just for backward compatibility.
     if (create_grid_in_deal)
       {
+        pcout<<"Creating planes as external grid in dealii"<<std::endl;
         create_ext_grid(ext_grid);
 
       }
+    else if (create_ext_box_bool)
+      {
+        pcout<<"Creating box as external grid in dealii"<<std::endl;
+        create_ext_box(ext_grid);
+      }
     else
       {
-        //pcout<<"ahah";
+        pcout<<"Reading the external solution from "<< external_grid_filename <<std::endl;
         while (infile.good() && i<external_grid_dimension)
           {
             for (unsigned int j=0; j<2; ++j)
@@ -635,7 +667,7 @@ namespace PostProcess
     DoFRenumbering::component_wise(dh_stokes);
     DoFRenumbering::component_wise(map_dh);
 
-    pcout << "There are " << dh_stokes.n_dofs() << " degrees of freedom"<< std::endl;
+    pcout << "There are " << dh_stokes.n_dofs() << " degrees of freedom from the stokes system"<< std::endl;
 
     external_grid.resize(external_grid_dimension);
 
@@ -661,7 +693,13 @@ namespace PostProcess
     external_velocities.reinit(dim*external_grid_dimension);
     mean_external_velocities.reinit(dim*external_grid_dimension);
     reference_support_points.resize(n_dofs_stokes);
-    pcout<<n_dofs_stokes<<" "<<std::endl;
+    if (create_ext_box_bool)
+      {
+        dissipation_energy.reinit(box_dh_scalar.n_dofs());
+        mean_dissipation_energy.reinit(box_dh_scalar.n_dofs());
+
+      }
+    // pcout<<n_dofs_stokes<<" "<<std::endl;
     DoFTools::map_dofs_to_support_points<dim-1, dim>( StaticMappingQ1<dim-1, dim>::mapping, dh_stokes, reference_support_points);
 
     cm_stokes.clear();
@@ -1496,6 +1534,8 @@ namespace PostProcess
     fe_stokes = parsed_fe_stokes();
     fe_map = parsed_fe_mapping();
     grid_fe = parsed_grid_fe();
+    box_fe_vector = parsed_box_fe_vector();
+    box_fe_scalar = parsed_box_fe_scalar();
 
 
     // read_domain();
@@ -1542,13 +1582,13 @@ namespace PostProcess
     pcout<<stored_results_path+"reference_tria"<<std::endl;
     read_input_triangulation(stored_results_path+"reference_tria","bin",tria);
     pcout<<refine_distance_from_center<<" "<<wall_threshold<<" "<<refinement_center<<std::endl;
+    pcout<<"read external grid"<<std::endl;
+    read_external_grid(external_grid_filename, external_grid);
     pcout<<"reinit"<<std::endl;
     reinit();
     // pcout<<"mmmmm "<<dh_stokes.n_dofs()<<std::endl;
     pcout<<"body index set"<<std::endl;
     create_body_index_set();
-    pcout<<"read external grid"<<std::endl;
-    read_external_grid(external_grid_filename, external_grid);
     pcout<<"compute proc props"<<std::endl;
     compute_processor_properties();
     pcout<<"compute euler vector"<<std::endl;
@@ -1565,7 +1605,8 @@ namespace PostProcess
         read_computed_results(i);
         //shape_velocities.sadd(0., 1./time_step, next_euler_vec, -1./time_step, euler_vec);
 
-        pcout<< "Computing the exterior solution on the grid " << external_grid_filename << std::endl;
+        pcout<< "Computing the exterior solution on the grid "  << std::endl;
+        pcout<< "There are " << external_grid.size() << " points, and "<<external_velocities.size()<<" velocity unknowns"<<std::endl;
         compute_real_forces_and_velocities();
         // external_grid.resize(1);
         // std::vector<Point<dim> > new_ext_grid(1);
@@ -1580,6 +1621,10 @@ namespace PostProcess
         // evaluate_stokes_bie(external_grid, real_velocities, real_stokes_forces, external_velocities);
         // external_velocities.print(std::cout);
         compute_exterior_stokes_solution_on_grid();
+        if (create_ext_box_bool)
+          {
+            compute_dissipation_energy();
+          }
         // pcout<<"reduce"<<std::endl;
         // reduce_exterior_results(i);
         pcout<<"reduce and output"<<std::endl;
@@ -1614,17 +1659,49 @@ namespace PostProcess
 
     grid_dh.distribute_dofs(*grid_fe);
     DoFRenumbering::component_wise(grid_dh);
-    mean_external_velocities.reinit(grid_dh.n_dofs());
-    external_velocities.reinit(grid_dh.n_dofs());
+
+    box_dh_vector.distribute_dofs(*box_fe_vector);
+    DoFRenumbering::component_wise(box_dh_vector);
+
+    box_dh_scalar.distribute_dofs(*box_fe_scalar);
+
+    if (create_ext_box_bool)
+      {
+        mean_external_velocities.reinit(box_dh_vector.n_dofs());
+        external_velocities.reinit(box_dh_vector.n_dofs());
+        dissipation_energy.reinit(box_dh_scalar.n_dofs());
+        mean_dissipation_energy.reinit(box_dh_scalar.n_dofs());
+      }
+    else
+      {
+        mean_external_velocities.reinit(grid_dh.n_dofs());
+        external_velocities.reinit(grid_dh.n_dofs());
+      }
     for (unsigned int frame=start_frame; frame<=end_frame; frame=frame+delta_frame)
       {
         std::string file_name_vel;
         file_name_vel = "stokes_exterior_" + Utilities::int_to_string(frame) + ".bin";
         std::ifstream rvel (file_name_vel.c_str());
         external_velocities.block_read(rvel);
-        Assert(external_velocities.size()==grid_dh.n_dofs(), ExcInternalError());
+        if (create_ext_box_bool)
+          {
+            Assert(external_velocities.size()==box_dh_vector.n_dofs(), ExcInternalError());
+          }
+        else
+          Assert(external_velocities.size()==grid_dh.n_dofs(), ExcInternalError());
         pcout<<"reducing frame "<< frame <<std::endl;
         mean_external_velocities.sadd(1.,1.,external_velocities);
+
+        if (create_ext_box_bool)
+          {
+            std::string file_name_energy;
+            file_name_energy = "dissipation_energy_" + Utilities::int_to_string(frame) + ".bin";
+            std::ifstream ren (file_name_energy.c_str());
+            dissipation_energy.block_read(ren);
+            Assert(dissipation_energy.size()==box_dh_scalar.n_dofs(), ExcInternalError());
+            // pcout<<"reducing frame "<< frame <<std::endl;
+            mean_dissipation_energy.sadd(1.,1.,dissipation_energy);
+          }
       }
     compute_average(start_frame, end_frame);
 
@@ -1638,6 +1715,49 @@ namespace PostProcess
     q[2]=p[1];
     q[1]=0;
     return q;
+  }
+
+
+  template<int dim>
+  void PostProcessBEMStokes<dim>::create_ext_box(std::vector<Point<dim> > &ext_grid)
+  {
+    Point<dim> body_center;
+    double body_diam=1.;//1.45;//1.65233910563;
+    double span=20;
+    std::vector<Point<dim> > vertices(4);
+
+    GridGenerator::hyper_rectangle(box_tria, point_box_1, point_box_2);//const bool   colorize = false
+
+    box_tria.refine_global(n_rep_ext_box_ref);
+
+    box_dh_vector.distribute_dofs(*box_fe_vector);
+    DoFRenumbering::component_wise(box_dh_vector);
+    box_dh_scalar.distribute_dofs(*box_fe_scalar);
+
+    if (this_mpi_process == 0)
+      {
+        std::string filename = "post_process_box.inp";
+        std::ofstream box_ofs;
+        box_ofs.open(filename, std::ofstream::out);
+        GridOut go;
+        go.write_ucd(box_tria,box_ofs);
+      }
+
+    std::vector<Point<dim> > box_support_points(box_dh_vector.n_dofs());
+    ext_grid.resize(box_dh_vector.n_dofs()/dim);
+    external_velocities.reinit(dim*external_grid_dimension);
+    mean_external_velocities.reinit(dim*external_grid_dimension);
+
+    DoFTools::map_dofs_to_support_points<dim,dim>( StaticMappingQ1<dim,dim>::mapping, box_dh_vector, box_support_points);
+
+    for (unsigned int i=0; i<ext_grid.size(); ++i)
+      ext_grid[i]=box_support_points[i];
+
+    external_grid_dimension = ext_grid.size();
+    pcout<<"Box external grid, cells : "<<box_tria.n_active_cells()<<" , dofs : "<<box_dh_vector.n_dofs()<<" , distinct points : "<<external_grid_dimension<<std::endl;
+
+
+
   }
 
   template<int dim>
@@ -1698,7 +1818,7 @@ namespace PostProcess
                 go.write_ucd(triangulation_wall,wall_ofs);
               }
             // pcout<<"GGGG"<<std::endl;
-            pcout<<"BUBI"<<std::endl;
+            // pcout<<"BUBI"<<std::endl;
             MPI_Barrier(mpi_communicator);
             // go.write_eps(triangulation_wall,wall_ofs);
             pcout<<"Adding the wall to the tria"<<std::endl;
@@ -1863,6 +1983,163 @@ namespace PostProcess
   }
 
   template<int dim>
+  void PostProcessBEMStokes<dim>::compute_dissipation_energy()
+  {
+
+    Vector<double> ext_red_vel(external_velocities.size());
+    MPI::COMM_WORLD.Reduce(&external_velocities(0), &ext_red_vel(0),
+                           external_velocities.size(), MPI_DOUBLE, MPI_SUM,
+                           0);
+
+    pcout<<"Computing dissipation energy"<<std::endl;
+    FEValues<dim> fe_values_box_scalar (*box_fe_scalar, quadrature_box,
+                                        update_values |
+                                        update_quadrature_points | update_JxW_values);
+
+    FEValues<dim> fe_values_box_vector (*box_fe_vector, quadrature_box,
+                                        update_values   | update_gradients |
+                                        update_quadrature_points | update_JxW_values);
+
+
+    const unsigned int   dofs_per_cell_scalar = box_fe_scalar->dofs_per_cell;
+    const unsigned int   dofs_per_cell_vector = box_fe_vector->dofs_per_cell;
+    const unsigned int   n_q_points    = quadrature_box.size();
+    std::vector<types::global_dof_index> local_dof_indices (dofs_per_cell_scalar);
+    Vector<double> system_rhs_energy(box_dh_scalar.n_dofs());
+
+    DynamicSparsityPattern dsp(box_dh_scalar.n_dofs());
+    SparsityPattern sparsity_pattern;
+    SparseMatrix<double> system_matrix_energy;
+    DoFTools::make_sparsity_pattern (box_dh_scalar, dsp);
+    sparsity_pattern.copy_from(dsp);
+    system_matrix_energy.reinit (sparsity_pattern);
+    FullMatrix<double>   cell_matrix_energy (dofs_per_cell_scalar, dofs_per_cell_scalar);
+    Vector<double>       cell_rhs_energy (dofs_per_cell_scalar);
+
+    auto cell_vector = box_dh_vector.begin_active();
+    auto cell_scalar = box_dh_scalar.begin_active();
+
+    // std::vector<Vector<double> > stokes_local_shape_vel(n_q_points, Vector<double> (dim));
+    std::vector<std::vector<Tensor<1, dim> > > velocity_local_solution_gradients(n_q_points, std::vector<Tensor<1, dim> > (dim));
+
+    for (; cell_vector != box_dh_vector.end(); ++cell_vector, ++cell_scalar)
+      {
+        fe_values_box_vector.reinit (cell_vector);
+        fe_values_box_scalar.reinit (cell_scalar);
+        cell_scalar->get_dof_indices(local_dof_indices);
+        cell_matrix_energy = 0;
+        cell_rhs_energy = 0;
+        fe_values_box_vector.get_function_gradients(ext_red_vel, velocity_local_solution_gradients);
+
+        for (unsigned int q=0; q<n_q_points; ++q)
+          for (unsigned int i=0; i<dofs_per_cell_scalar; ++i)
+            {
+              FullMatrix<double> symmetric_velocity_gradient(dim,dim);
+              auto integration_helper = fe_values_box_scalar.shape_value(i,q) * fe_values_box_scalar.JxW(q);
+              // for (unsigned int j=0; j<dofs_per_cell_vector; ++j)
+              // {
+              //   unsigned int jdim = box_fe_vector->system_to_component_index(j).first;
+              //   auto shape_grad_j = fe_values_box_vector.shape_grad(j, q);
+              for (unsigned int idim=0; idim<dim; ++idim)
+                {
+                  for (unsigned int jdim=0; jdim<dim; ++jdim)
+                    {
+                      symmetric_velocity_gradient(idim,jdim) += 0.5*(velocity_local_solution_gradients[q][idim][jdim]+velocity_local_solution_gradients[q][jdim][idim]);//0.5*shape_grad_j[idim]*stokes_local_shape_vel[j][jdim]*integration_helper;
+                      // symmetric_velocity_gradient(jdim,idim) += 0.5*velocity_local_solution_gradients[q][idim][jdim];//0.5*shape_grad_j[idim]*stokes_local_shape_vel[j][jdim]*integration_helper;
+                    }
+                }
+              // }
+              // Point<dim> P1(0,10,0);
+              // Point<dim> P2(0,-10,0);
+              // if(external_grid[local_dof_indices[i]] == P1 || external_grid[local_dof_indices[i]] == P1)
+              // {
+              //   std::cout<<std::endl;
+              //   pcout<<external_grid[local_dof_indices[i]]<<std::endl;
+              //   symmetric_velocity_gradient.print_formatted(std::cout);
+              // }
+              for (unsigned int idim = 0; idim<dim; ++idim)
+                for (unsigned int jdim = 0; jdim<dim; ++jdim)
+                  cell_rhs_energy(i) += symmetric_velocity_gradient(idim,jdim) * symmetric_velocity_gradient(idim, jdim)*integration_helper;
+              for (unsigned int j=0; j<dofs_per_cell_scalar; ++j)
+                cell_matrix_energy(i,j) += integration_helper * fe_values_box_scalar.shape_value(j,q);
+
+
+            }
+        // pcout<<cell_rhs_energy.linfty_norm()<<std::endl;
+        for (unsigned int i=0; i<dofs_per_cell_scalar; ++i)
+          {
+            for (unsigned int j=0; j<dofs_per_cell_scalar; ++j)
+              system_matrix_energy.add (local_dof_indices[i],
+                                        local_dof_indices[j],
+                                        cell_matrix_energy(i,j));
+            system_rhs_energy(local_dof_indices[i]) += cell_rhs_energy(i);
+          }
+      }
+
+    SolverControl           solver_control (1000, 1e-12);
+    SolverCG<>              solver (solver_control);
+    // system_rhs_energy.print(std::cout);
+    // system_matrix_energy.print(std::cout);
+    // for(auto i : system_rhs_energy.locally_owned_elements())
+    //   if(system_rhs_energy[i] < 0)
+    //     pcout<<"ERROR at i : "<<i<<" , value : "<<system_rhs_energy[i]<<std::endl;
+    PreconditionJacobi<SparseMatrix<double> > precondition_energy;
+    precondition_energy.initialize(system_matrix_energy);
+    solver.solve (system_matrix_energy, dissipation_energy, system_rhs_energy,
+                  precondition_energy);
+    // for(auto i : system_rhs_energy.locally_owned_elements())
+    //   if(dissipation_energy[i] < 0)
+    //     pcout<<"ERROR at i : "<<i<<" , value : "<<dissipation_energy[i]<<std::endl;
+    pcout << "   " << solver_control.last_step()
+          << " CG iterations needed to obtain convergence for the dissipation_energy."
+          << std::endl;
+
+
+    double dissipated_energy = 0.;
+    std::vector<double> local_energy(n_q_points);
+    for (cell_scalar = box_dh_scalar.begin_active(); cell_scalar != box_dh_scalar.end(); ++cell_scalar)
+      {
+        fe_values_box_scalar.reinit (cell_scalar);
+        fe_values_box_scalar.get_function_values(dissipation_energy, local_energy);
+        for (unsigned int q=0; q<n_q_points; ++q)
+          dissipated_energy += local_energy[q] * fe_values_box_scalar.JxW(q);
+
+
+      }
+
+    auto cell_stokes = dh_stokes.begin_active();
+
+
+    FEValues<dim-1,dim> fe_values_stokes(*mappingeul, *fe_stokes, quadrature,
+                                         update_values |
+                                         update_quadrature_points |
+                                         update_JxW_values);
+
+    const unsigned int n_q_points_stokes = fe_values_stokes.n_quadrature_points;
+
+
+    std::vector<Vector<double> > stokes_local_forces(n_q_points_stokes, Vector<double> (dim));
+    std::vector<Vector<double> > stokes_local_shape_vel(n_q_points_stokes, Vector<double> (dim));
+    double input_energy=0.;
+    for (; cell_stokes != dh_stokes.end(); ++cell_stokes)
+      {
+        fe_values_stokes.reinit (cell_stokes);
+        fe_values_stokes.get_function_values(real_stokes_forces, stokes_local_forces);
+        fe_values_stokes.get_function_values(real_velocities, stokes_local_shape_vel);
+        for (unsigned int q=0; q<n_q_points_stokes; ++q)
+          input_energy += stokes_local_forces[q]*stokes_local_shape_vel[q] * fe_values_stokes.JxW(q);
+
+      }
+
+    pcout<<"The total dissipated energy is "<<dissipated_energy<<" , the input energy is "<<input_energy <<std::endl;
+
+    mean_dissipation_energy.sadd(1.,1.,dissipation_energy);
+
+
+  }
+
+
+  template<int dim>
   void PostProcessBEMStokes<dim>::reduce_output_grid_result(const unsigned int frame)
   {
     Vector<double> ext_red_vel(external_velocities.size());
@@ -1883,6 +2160,11 @@ namespace PostProcess
 
         filename_mean="exterior_velocity_at_frame_"+Utilities::int_to_string(frame)+".txt";
         ofs_mean.open (filename_mean, std::ofstream::out | std::ofstream::app);
+
+        std::string file_name_diss_energy;
+        file_name_diss_energy = "dissipation_energy_" + Utilities::int_to_string(frame) + ".bin";
+        std::ofstream rdiss (file_name_diss_energy.c_str());
+        dissipation_energy.block_write(rdiss);
 
 
         for (unsigned int i = 0; i<external_grid_dimension; ++i)
@@ -2001,6 +2283,51 @@ namespace PostProcess
             dataout_data.write_vtu(file_vector_data);
 
           }
+        if (create_ext_box_bool)
+          {
+            std::vector<DataComponentInterpretation::DataComponentInterpretation>
+            data_component_interpretation
+            (dim, DataComponentInterpretation::component_is_part_of_vector);
+
+            DataOut<dim, DoFHandler<dim, dim> > dataout_vector;
+            dataout_vector.attach_dof_handler(box_dh_vector);
+            dataout_vector.add_data_vector(ext_red_vel, std::vector<std::string > (dim,"ext_vel"), DataOut<dim, DoFHandler<dim, dim> >::type_dof_data, data_component_interpretation);
+            dataout_vector.build_patches();
+            pcout<<"writing"<<std::endl;
+            std::string filename_vector;
+            filename_vector="exterior_velocity_at_frame_"+Utilities::int_to_string(frame)+".vtu";
+            std::ofstream file_vector(filename_vector.c_str());
+            dataout_vector.write_vtu(file_vector);
+
+            DataOut<dim, DoFHandler<dim, dim> > dataout_scalar;
+            dataout_scalar.attach_dof_handler(box_dh_scalar);
+            dataout_scalar.add_data_vector(dissipation_energy, std::string("dissipation_energy"), DataOut<dim, DoFHandler<dim, dim> >::type_dof_data);
+            dataout_scalar.build_patches();
+
+            std::string filename_scalar;
+            filename_scalar="dissipation_energy_at_frame_"+Utilities::int_to_string(frame)+".vtu";
+            std::ofstream file_scalar(filename_scalar.c_str());
+            dataout_scalar.write_vtu(file_scalar);
+
+            DataOut<dim-1, DoFHandler<dim-1, dim> > dataout_data;
+
+            dataout_data.attach_dof_handler(dh_stokes);
+            dataout_data.add_data_vector(real_stokes_forces, std::vector<std::string > (dim,"stokes_forces"), DataOut<dim-1, DoFHandler<dim-1, dim> >::type_dof_data, data_component_interpretation);
+
+            // dataout_data.add_data_vector(rigid_puntual_velocities, std::vector<std::string > (dim,"rigid_vel"), DataOut<2, DoFHandler<2, dim> >::type_dof_data, data_component_interpretation);
+            // dataout_data.add_data_vector(shape_velocities, std::vector<std::string > (dim,"shape_velocities"), DataOut<2, DoFHandler<2, dim> >::type_dof_data, data_component_interpretation);
+            dataout_data.add_data_vector(real_velocities, std::vector<std::string > (dim,"real_velocities"), DataOut<dim-1, DoFHandler<dim-1, dim> >::type_dof_data, data_component_interpretation);
+            dataout_data.build_patches(*mappingeul,
+                                       fe_stokes->degree,
+                                       DataOut<dim-1, DoFHandler<dim-1, dim> >::curved_inner_cells);
+
+            std::string filename_data;
+            filename_data="original_data_at_frame_"+Utilities::int_to_string(frame)+".vtu";
+            std::ofstream file_vector_data(filename_data.c_str());
+            dataout_data.write_vtu(file_vector_data);
+
+          }
+
 
       }
 
@@ -2093,6 +2420,42 @@ namespace PostProcess
         std::ofstream file_vector(filename.c_str());
 
         dataout.write_vtu(file_vector);
+      }
+    if (create_ext_box_bool)
+      {
+        // if (dim==3)
+        //   for (unsigned int i=0; i<mean_red_vel.size()/dim; ++i)
+        //     mean_red_vel(i+mean_red_vel.size()/dim)=0;
+        // pcout<<"1"<<std::endl;
+        std::vector<DataComponentInterpretation::DataComponentInterpretation>
+        data_component_interpretation
+        (dim, DataComponentInterpretation::component_is_part_of_vector);
+
+        DataOut<dim, DoFHandler<dim, dim> > dataout;
+
+        dataout.attach_dof_handler(box_dh_vector);
+        dataout.add_data_vector(mean_red_vel, std::vector<std::string > (dim,"ext_vel"), DataOut<dim, DoFHandler<dim, dim> >::type_dof_data, data_component_interpretation);
+        dataout.build_patches();
+
+        std::string filename;
+        filename="exterior_mean_velocity_frame_"+Utilities::int_to_string(start_frame)+"_"+Utilities::int_to_string(final_frame)+".vtu";
+        std::ofstream file_vector(filename.c_str());
+
+        dataout.write_vtu(file_vector);
+
+        DataOut<dim, DoFHandler<dim, dim> > dataout_scalar;
+        // pcout<<"2"<<std::endl;
+
+        dataout_scalar.attach_dof_handler(box_dh_scalar);
+        dataout_scalar.add_data_vector(mean_dissipation_energy, "dissipation_energy", DataOut<dim, DoFHandler<dim, dim> >::type_dof_data); //, DataOut<dim, DoFHandler<dim, dim> >::type_dof_data);
+        dataout_scalar.build_patches();
+
+        std::string filename_scalar;
+        filename_scalar="mean_dissipation_energy_frame_"+Utilities::int_to_string(start_frame)+"_"+Utilities::int_to_string(final_frame)+".vtu";
+        std::ofstream file_scalar(filename_scalar.c_str());
+
+        dataout_scalar.write_vtu(file_scalar);
+
       }
 
   }

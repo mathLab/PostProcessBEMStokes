@@ -147,6 +147,8 @@ namespace PostProcess
     /// It creates the IndexSet representing the swimmer in the loaded triangulation.
     void create_body_index_set();
 
+    /// Computes the dissipation energy on the full dim-dimensional box.
+    void compute_dissipation_energy();
 
 
     /// Helper function to convert the bool parameters in  std::vector<bools>.
@@ -164,8 +166,12 @@ namespace PostProcess
     void reduce_output_grid_result(const unsigned int frame);
 
     /// If the bool parameter create_grid_in_deal is set this function takes care of the creation of the std::vector<Point<dim> > representing the external grid. We create the
-    /// post process walls consideing the settings of post_process_wall_bool, wall_spans, wall_positions.
+    /// post process walls considering the settings of post_process_wall_bool, wall_spans, wall_positions.
     void create_ext_grid(std::vector<Point<dim> > &ext_grid);
+
+    /// If the bool parameter create_ext_box is set this function takes care of the creation of the std::vector<Point<dim> > representing the external box. We create the
+    /// post process walls considering the settings of the two points: point_box_1 and point_box_2.
+    void create_ext_box(std::vector<Point<dim> > &ext_grid);
 
     /// Given the settings of the current simulation we can compute the first Green kernel G. It only uses one of the possible kernels depending on the input bool parameters.
     Tensor<2,dim> compute_G_kernel(const Tensor<1, dim> &R, const Tensor<1, dim> &R_image,
@@ -183,18 +189,25 @@ namespace PostProcess
 
     Triangulation<dim-1, dim>   tria;
     Triangulation<2,dim> ext_tria;
+    Triangulation<dim, dim> box_tria;
 
     std::unique_ptr<FiniteElement<dim-1, dim> > fe_stokes;
     std::unique_ptr<FiniteElement<dim-1, dim> > fe_map;
     std::unique_ptr<FiniteElement<2, dim> > grid_fe;
+    std::unique_ptr<FiniteElement<dim, dim> > box_fe_vector;
+    std::unique_ptr<FiniteElement<dim, dim> > box_fe_scalar;
 
     ParsedFiniteElement<dim-1, dim> parsed_fe_stokes;
     ParsedFiniteElement<dim-1, dim> parsed_fe_mapping;
     ParsedFiniteElement<2, dim> parsed_grid_fe;
+    ParsedFiniteElement<dim, dim> parsed_box_fe_vector;
+    ParsedFiniteElement<dim, dim> parsed_box_fe_scalar;
 
     DoFHandler<dim-1, dim> map_dh;
     DoFHandler<dim-1, dim> dh_stokes;
     DoFHandler<2, dim> grid_dh;
+    DoFHandler<dim, dim> box_dh_vector;
+    DoFHandler<dim, dim> box_dh_scalar;
 
 
     ConstraintMatrix cm_stokes;
@@ -208,11 +221,14 @@ namespace PostProcess
 
     // std_cxx11::shared_ptr<Quadrature<dim-1> > quadrature;
     ParsedQuadrature<dim-1> quadrature;
+    ParsedQuadrature<dim> quadrature_box;
     bool extra_debug_info;
 
     bool run_2d, run_3d;
     bool run_in_this_dimension;
     bool create_grid_in_deal;
+    bool create_ext_box_bool;
+
     unsigned int external_grid_dimension;
     unsigned int n_frames;
 
@@ -236,6 +252,8 @@ namespace PostProcess
     Vector<double> external_velocities;
     Vector<double> mean_external_velocities;
 
+    Vector<double> dissipation_energy;
+    Vector<double> mean_dissipation_energy;
 
     std::vector<Vector<double> >  DN_N_rigid;
     Vector<double> rigid_velocities;
@@ -251,6 +269,7 @@ namespace PostProcess
     unsigned int num_rigid;
 
     unsigned int n_rep_ext_wall_ref;
+    unsigned int n_rep_ext_box_ref;
 
 
     FullMatrix<double> rotation_matrix;
@@ -272,6 +291,8 @@ namespace PostProcess
     bool read_box_bool, read_cyl_bool, cylinder_manifold_bool;
     unsigned int first_index_box;
     Point<dim> cylinder_direction, cylinder_point_on_axis;
+    Point<dim> point_box_1, point_box_2;
+
     std::shared_ptr<Manifold<dim-1, dim> > cylinder_manifold;
 
     std::vector<bool> wall_bool;
