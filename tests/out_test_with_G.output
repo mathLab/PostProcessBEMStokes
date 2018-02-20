@@ -2,8 +2,8 @@ Test that the BEM is able to recover the Fundamental Solution outside
 Testing for degree = 1
 reading ../../../tests/box/reference_tria.bin
 There are 1158 degrees of freedom
-1158 
 read external grid
+Creating planes as external grid in dealii
 creating post process wall with id 0
 10 0 0
 Adding the wall to the tria

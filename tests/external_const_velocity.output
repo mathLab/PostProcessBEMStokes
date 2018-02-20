@@ -6,8 +6,8 @@ Adding box.
 read
 merged
 There are 2436 degrees of freedom
-2436 
 read external grid
+Creating planes as external grid in dealii
 creating post process wall with id 0
 0 -15 0
 Adding the wall to the tria
