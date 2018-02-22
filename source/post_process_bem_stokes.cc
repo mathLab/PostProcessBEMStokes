@@ -2035,7 +2035,7 @@ namespace PostProcess
           for (unsigned int i=0; i<dofs_per_cell_scalar; ++i)
             {
               FullMatrix<double> symmetric_velocity_gradient(dim,dim);
-              auto integration_helper = fe_values_box_scalar.shape_value(i,q) * fe_values_box_scalar.JxW(q);
+              // auto integration_helper = fe_values_box_scalar.shape_value(i,q) * fe_values_box_scalar.JxW(q);
               // for (unsigned int j=0; j<dofs_per_cell_vector; ++j)
               // {
               //   unsigned int jdim = box_fe_vector->system_to_component_index(j).first;
@@ -2059,9 +2059,9 @@ namespace PostProcess
               // }
               for (unsigned int idim = 0; idim<dim; ++idim)
                 for (unsigned int jdim = 0; jdim<dim; ++jdim)
-                  cell_rhs_energy(i) += symmetric_velocity_gradient(idim,jdim) * symmetric_velocity_gradient(idim, jdim)*integration_helper;
+                  cell_rhs_energy(i) += 2. * symmetric_velocity_gradient(idim,jdim) * symmetric_velocity_gradient(idim, jdim)* fe_values_box_scalar.shape_value(i,q) * fe_values_box_scalar.JxW(q);
               for (unsigned int j=0; j<dofs_per_cell_scalar; ++j)
-                cell_matrix_energy(i,j) += integration_helper * fe_values_box_scalar.shape_value(j,q);
+                cell_matrix_energy(i,j) += fe_values_box_scalar.shape_value(i,q) * fe_values_box_scalar.JxW(q) * fe_values_box_scalar.shape_value(j,q);
 
 
             }
@@ -2095,8 +2095,14 @@ namespace PostProcess
           << std::endl;
 
 
+    for(auto i : dissipation_energy.locally_owned_elements())
+    {
+      if(external_grid[i].square()<1.)
+        dissipation_energy[i]=0.;
+    }
     double dissipated_energy = 0.;
     std::vector<double> local_energy(n_q_points);
+
     for (cell_scalar = box_dh_scalar.begin_active(); cell_scalar != box_dh_scalar.end(); ++cell_scalar)
       {
         fe_values_box_scalar.reinit (cell_scalar);
