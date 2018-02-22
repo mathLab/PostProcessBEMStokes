@@ -878,10 +878,10 @@ namespace PostProcess
   {
     euler = 0;
     Triangulation<dim-1, dim> frame_tria;
-    unsigned int k = fe_map->dofs_per_cell;
+    // unsigned int k = fe_map->dofs_per_cell;
     DoFHandler<dim-1, dim> frame_map_dh(frame_tria);
     // std::vector<Point<dim> > frame_support_points(map_dh.n_dofs());
-    bool print(true);
+    // bool print(true);
     // std::string filename = input_grid_base_name+Utilities::int_to_string(frame)+"."+input_grid_format;
     // pcout << "Analyzing file " << filename << std::endl;
     pcout << "Analyzing frame = "<< frame << " over " << n_frames << std::endl;
@@ -1289,7 +1289,7 @@ namespace PostProcess
     for (unsigned int i=proc_start; i<proc_end; ++i)
       {
         // std::cout<<i<<std::endl;
-        for (cell = dh_stokes.begin_active(); cell != dh_stokes.end(); ++cell)
+        for (cell = dh_stokes.begin_active(); cell != endc; ++cell)
           {
             fe_stokes_v.reinit(cell);
             const std::vector<Point<dim> > &q_points = fe_stokes_v.get_quadrature_points();
@@ -1722,8 +1722,8 @@ namespace PostProcess
   void PostProcessBEMStokes<dim>::create_ext_box(std::vector<Point<dim> > &ext_grid)
   {
     Point<dim> body_center;
-    double body_diam=1.;//1.45;//1.65233910563;
-    double span=20;
+    // double body_diam=1.;//1.45;//1.65233910563;
+    // double span=20;
     std::vector<Point<dim> > vertices(4);
 
     GridGenerator::hyper_rectangle(box_tria, point_box_1, point_box_2);//const bool   colorize = false
@@ -1764,8 +1764,8 @@ namespace PostProcess
   void PostProcessBEMStokes<dim>::create_ext_grid(std::vector<Point<dim> > &ext_grid)
   {
     Point<dim> body_center;
-    double body_diam=1.;//1.45;//1.65233910563;
-    double span=20;
+    // double body_diam=1.;//1.45;//1.65233910563;
+    // double span=20;
     std::vector<Point<dim> > vertices(4);
 
 
@@ -1791,7 +1791,7 @@ namespace PostProcess
             Triangulation<dim, dim> triangulation_wall;
             std::vector<Point<dim> > vertices(2);
             // Point<dim> P1(position), P2(position), P3(position), P4(position);
-            unsigned int foo_dim=numbers::invalid_unsigned_int, k=0;
+            // unsigned int foo_dim=numbers::invalid_unsigned_int, k=0;
             // std::vector<unsigned int> true_dim(dim-1);
             vertices[0] = wall_positions[0];
             vertices[1] = wall_positions[0];
@@ -1841,8 +1841,8 @@ namespace PostProcess
                 // Triangulation<dim-1, dim> triangulation1(triangulation);
                 Triangulation<dim-1, dim> triangulation_wall;
 
-                double max_span = *std::max_element(wall_spans[i_wall].begin(),wall_spans[i_wall].end());
-                double infinite_factor = 20.;
+                // double max_span = *std::max_element(wall_spans[i_wall].begin(),wall_spans[i_wall].end());
+                // double infinite_factor = 20.;
                 std::vector<Point<dim> > vertices(4);
                 // Point<dim> P1(position), P2(position), P3(position), P4(position);
                 unsigned int foo_dim=numbers::invalid_unsigned_int, k=0;
@@ -2002,7 +2002,7 @@ namespace PostProcess
 
 
     const unsigned int   dofs_per_cell_scalar = box_fe_scalar->dofs_per_cell;
-    const unsigned int   dofs_per_cell_vector = box_fe_vector->dofs_per_cell;
+    // const unsigned int   dofs_per_cell_vector = box_fe_vector->dofs_per_cell;
     const unsigned int   n_q_points    = quadrature_box.size();
     std::vector<types::global_dof_index> local_dof_indices (dofs_per_cell_scalar);
     Vector<double> system_rhs_energy(box_dh_scalar.n_dofs());
@@ -2097,7 +2097,10 @@ namespace PostProcess
 
     for(auto i : dissipation_energy.locally_owned_elements())
     {
-      if(external_grid[i].square()<1.)
+      double vel_norm = 0.;
+      for(unsigned int idim=0; idim<dim;++idim)
+        vel_norm += external_velocities[i+idim*dissipation_energy.size()]*external_velocities[i+idim*dissipation_energy.size()];
+      if(vel_norm<1e-8)
         dissipation_energy[i]=0.;
     }
     double dissipated_energy = 0.;
