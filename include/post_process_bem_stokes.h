@@ -251,6 +251,7 @@ namespace PostProcess
     Vector<double> rigid_puntual_velocities;
     Vector<double> external_velocities;
     Vector<double> mean_external_velocities;
+    Vector<double> original_normal_vector;
 
     Vector<double> dissipation_energy;
     Vector<double> mean_dissipation_energy;

@@ -122,9 +122,13 @@ namespace PostProcess
     parsed_fe_stokes("Finite Element Stokes","FESystem<1,2>[FE_Q<1,2>(1)^2]","u,u",2),//,"FESystem<2,3>[FE_Q<2,3>(1)^3]","u,u,u",dim),
     parsed_fe_mapping("Finite Element Mapping","FESystem<1,2>[FE_Q<1,2>(1)^2]","u,u",2),//,"FESystem<2,3>[FE_Q<2,3>(1)^3]","u,u,u",dim),
     parsed_grid_fe("Finite Element External Grid","FESystem<2,2>[FE_Q<2,2>(1)^2]","u,u",2),
+    parsed_box_fe_vector("Finite Element External Box Vector","FESystem<3,3>[FE_Q<2,2>(1)^2]","u,u",2),
+    parsed_box_fe_scalar("Finite Element External Box Scalar","FE_Q(1)"),
     map_dh(tria),
     dh_stokes(tria),
     grid_dh(ext_tria),
+    box_dh_vector(box_tria),
+    box_dh_scalar(box_tria),
     mappingeul(NULL),
     rotation_matrix(2,2),
     wall_bool(8, false),
@@ -315,6 +319,12 @@ namespace PostProcess
       }
     else if (dim == 2)
       {
+        add_parameter(prm, &point_box_1,"Lower left angle for outside box","-10,-10",
+                      Patterns::List(Patterns::Double(),dim,dim),"Coordinates of first point for outside box creation");
+
+        add_parameter(prm, &point_box_2,"Upper right angle for outside box","10,10",
+                      Patterns::List(Patterns::Double(),dim,dim),"Coordinates of second point for outside box creation");
+
         add_parameter(prm, &(wall_spans[0]),"Wall 0 spans","10,10",
                       Patterns::List(Patterns::Double(),dim,dim),"List of the spans of the wall 0.");
         add_parameter(prm, &wall_positions[0],"Wall center position wall 0","0,0",
@@ -685,7 +695,7 @@ namespace PostProcess
     rigid_velocities.reinit(num_rigid);
     real_stokes_forces.reinit(n_dofs_stokes);
     real_velocities.reinit(n_dofs_stokes);
-
+    original_normal_vector.reinit(n_dofs_stokes);
     euler_vec.reinit(map_dh.n_dofs());
     next_euler_vec.reinit(map_dh.n_dofs());
 
@@ -922,7 +932,7 @@ namespace PostProcess
   void PostProcessBEMStokes<dim>::read_computed_results(unsigned int frame)
   {
 
-    std::string filename_vel, filename_forces, filename_shape_vel, filename_DN_rigid, filename_rigid, filename_total_vel;
+    std::string filename_vel, filename_forces, filename_shape_vel, filename_DN_rigid, filename_rigid, filename_total_vel, filename_normals;
     dpcout<<stored_results_path+"stokes_forces_" + Utilities::int_to_string(frame) + ".bin"<<std::endl;
     filename_forces = stored_results_path+"stokes_forces_" + Utilities::int_to_string(frame) + ".bin";
     std::ifstream forces(filename_forces.c_str());
@@ -946,6 +956,11 @@ namespace PostProcess
     std::ifstream t_vel(filename_total_vel.c_str());
     total_velocities.block_read(t_vel);
     // cm_stokes.distribute(total_velocities);
+
+    filename_normals = stored_results_path+"normal_vector" + Utilities::int_to_string(frame) + ".bin";
+    dpcout<<filename_normals<<std::endl;
+    std::ifstream t_norm(filename_normals.c_str());
+    original_normal_vector.block_read(t_norm);
 
     for (unsigned int i=0; i<num_rigid; ++i)
       {
@@ -1276,6 +1291,7 @@ namespace PostProcess
 
     std::vector<Vector<double> > stokes_local_forces(n_q_points_stokes, Vector<double> (dim));
     std::vector<Vector<double> > stokes_local_shape_vel(n_q_points_stokes, Vector<double> (dim));
+    std::vector<Vector<double> > local_normals(n_q_points_stokes, Vector<double> (dim));
     fs_stokes_kernel.set_wall_orientation(kernel_wall_orientation);
     ns_stokes_kernel.set_wall_orientation(kernel_wall_orientation);
 
@@ -1301,6 +1317,15 @@ namespace PostProcess
             // real_stokes_forces.print(std::cout);
             fe_stokes_v.get_function_values(real_stokes_forces, stokes_local_forces);
             fe_stokes_v.get_function_values(real_velocities, stokes_local_shape_vel);
+            fe_stokes_v.get_function_values(original_normal_vector, local_normals);
+            // if(cell == dh_stokes.begin_active() && i == 0)
+            // {
+            //   for(unsigned int ii=0; ii<n_q_points_stokes; ++ii)
+            //   {
+            //     stokes_local_shape_vel[ii].print(std::cout);
+            //     std::cout<<normals[ii]<<" : "<<local_normals[ii]<<std::endl;
+            //   }
+            // }
             // std::cout<<"bubi"<<std::endl;
 
             for (unsigned int q=0; q<n_q_points_stokes; ++q)
@@ -1319,7 +1344,10 @@ namespace PostProcess
 
                 // pcout<<q_points[q]<<" : "<<external_grid[i]<<" : "<< R<<" : "<<R.norm_square()<<std::endl;
                 Assert(R.norm_square() > 1e-6, ExcMessage("Error, R norm zero"));
-                Tensor<2,dim> singular_ker = compute_singular_kernel(normals[q], W) ;
+                Tensor<1, dim> local_normal;
+                for (unsigned int idim = 0; idim < dim; ++idim)
+                  local_normal[idim] = local_normals[q][idim];
+                Tensor<2,dim> singular_ker = compute_singular_kernel(local_normal, W) ;
                 // pcout<<normals[q].norm_square()<<" "<<G.norm_square()<<std::endl;
                 for (unsigned int idim = 0; idim < dim; ++idim)
                   {
@@ -2094,54 +2122,56 @@ namespace PostProcess
           << " CG iterations needed to obtain convergence for the dissipation_energy."
           << std::endl;
 
-
-    for(auto i : dissipation_energy.locally_owned_elements())
-    {
-      double vel_norm = 0.;
-      for(unsigned int idim=0; idim<dim;++idim)
-        vel_norm += external_velocities[i+idim*dissipation_energy.size()]*external_velocities[i+idim*dissipation_energy.size()];
-      if(vel_norm<1e-8)
-        dissipation_energy[i]=0.;
-    }
-    double dissipated_energy = 0.;
-    std::vector<double> local_energy(n_q_points);
-
-    for (cell_scalar = box_dh_scalar.begin_active(); cell_scalar != box_dh_scalar.end(); ++cell_scalar)
+    for (auto i : dissipation_energy.locally_owned_elements())
       {
-        fe_values_box_scalar.reinit (cell_scalar);
-        fe_values_box_scalar.get_function_values(dissipation_energy, local_energy);
-        for (unsigned int q=0; q<n_q_points; ++q)
-          dissipated_energy += local_energy[q] * fe_values_box_scalar.JxW(q);
-
-
+        double vel_norm = 0.;
+        for (unsigned int idim=0; idim<dim; ++idim)
+          vel_norm += external_velocities[i+idim*dissipation_energy.size()]*external_velocities[i+idim*dissipation_energy.size()];
+        if (vel_norm<1e-8)
+          dissipation_energy[i]=0.;
       }
-
-    auto cell_stokes = dh_stokes.begin_active();
-
-
-    FEValues<dim-1,dim> fe_values_stokes(*mappingeul, *fe_stokes, quadrature,
-                                         update_values |
-                                         update_quadrature_points |
-                                         update_JxW_values);
-
-    const unsigned int n_q_points_stokes = fe_values_stokes.n_quadrature_points;
-
-
-    std::vector<Vector<double> > stokes_local_forces(n_q_points_stokes, Vector<double> (dim));
-    std::vector<Vector<double> > stokes_local_shape_vel(n_q_points_stokes, Vector<double> (dim));
-    double input_energy=0.;
-    for (; cell_stokes != dh_stokes.end(); ++cell_stokes)
+    if (extra_debug_info)
       {
-        fe_values_stokes.reinit (cell_stokes);
-        fe_values_stokes.get_function_values(real_stokes_forces, stokes_local_forces);
-        fe_values_stokes.get_function_values(real_velocities, stokes_local_shape_vel);
-        for (unsigned int q=0; q<n_q_points_stokes; ++q)
-          input_energy += stokes_local_forces[q]*stokes_local_shape_vel[q] * fe_values_stokes.JxW(q);
 
+        double dissipated_energy = 0.;
+        std::vector<double> local_energy(n_q_points);
+
+        for (cell_scalar = box_dh_scalar.begin_active(); cell_scalar != box_dh_scalar.end(); ++cell_scalar)
+          {
+            fe_values_box_scalar.reinit (cell_scalar);
+            fe_values_box_scalar.get_function_values(dissipation_energy, local_energy);
+            for (unsigned int q=0; q<n_q_points; ++q)
+              dissipated_energy += local_energy[q] * fe_values_box_scalar.JxW(q);
+
+
+          }
+
+        auto cell_stokes = dh_stokes.begin_active();
+
+
+        FEValues<dim-1,dim> fe_values_stokes(*mappingeul, *fe_stokes, quadrature,
+                                             update_values |
+                                             update_quadrature_points |
+                                             update_JxW_values);
+
+        const unsigned int n_q_points_stokes = fe_values_stokes.n_quadrature_points;
+
+
+        std::vector<Vector<double> > stokes_local_forces(n_q_points_stokes, Vector<double> (dim));
+        std::vector<Vector<double> > stokes_local_shape_vel(n_q_points_stokes, Vector<double> (dim));
+        double input_energy=0.;
+        for (; cell_stokes != dh_stokes.end(); ++cell_stokes)
+          {
+            fe_values_stokes.reinit (cell_stokes);
+            fe_values_stokes.get_function_values(real_stokes_forces, stokes_local_forces);
+            fe_values_stokes.get_function_values(real_velocities, stokes_local_shape_vel);
+            for (unsigned int q=0; q<n_q_points_stokes; ++q)
+              input_energy += stokes_local_forces[q]*stokes_local_shape_vel[q] * fe_values_stokes.JxW(q);
+
+          }
+
+        dpcout<<"The total dissipated energy is "<<dissipated_energy<<" , the input energy is "<<input_energy <<std::endl;
       }
-
-    pcout<<"The total dissipated energy is "<<dissipated_energy<<" , the input energy is "<<input_energy <<std::endl;
-
     mean_dissipation_energy.sadd(1.,1.,dissipation_energy);
 
 

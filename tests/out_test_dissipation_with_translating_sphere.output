@@ -1,0 +1,15 @@
+Test that the BEM is able to recover the Fundamental Solution outside
+Testing for degree = 1
+read external grid
+Creating box as external grid in dealii
+Box external grid, cells : 4096 , dofs : 14739 , distinct points : 4913
+reading ../../../tests/box/reference_tria.bin
+There are 1152 degrees of freedom from the stokes system
+4913 14739
+ Stokes Solution norms: forces 1 19.5959 , velocities 1.52109 29.4513 
+reduce and output
+Computing dissipation energy
+   65 CG iterations needed to obtain convergence for the dissipation_energy.
+OK
+done txt
+writing
