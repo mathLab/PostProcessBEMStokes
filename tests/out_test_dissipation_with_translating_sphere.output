@@ -6,10 +6,15 @@ Box external grid, cells : 4096 , dofs : 14739 , distinct points : 4913
 reading ../../../tests/box/reference_tria.bin
 There are 1152 degrees of freedom from the stokes system
 4913 14739
- Stokes Solution norms: forces 1 19.5959 , velocities 1.52109 29.4513 
+Computing the exterior solution on the grid 
+There are 4913 points, and 14739 velocity unknowns
+1152 1152
+0 0
+ Stokes Solution norms: forces 1.52109 29.4513 , velocities 1 19.5959 
+0.746727 11.324
 reduce and output
 Computing dissipation energy
-   65 CG iterations needed to obtain convergence for the dissipation_energy.
-OK
+   58 CG iterations needed to obtain convergence for the dissipation_energy.
+OK DISSIPATED ENERGY
 done txt
 writing

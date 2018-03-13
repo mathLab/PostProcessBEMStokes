@@ -7,6 +7,7 @@ subsection PostProcess::PostProcessBEMStokes<3>
   set Input grid base name (for testing, unused in real PostProcessBEMStokes)                     = ../../../../BEMStokes/debug_grids/sphere_mesh_3d_
   set Input grid format (for testing, unused in real PostProcessBEMStokes)                       = msh
   set Number of global_refinement for ext wall = 2
+  set Print extra debug information = true
   set Path to stored results                   = ../../../tests/box/
   # Bool set to create Post Process wall 0.
   set Post Process Wall 0 bool                 = false
@@ -65,6 +66,22 @@ end
 
 
 subsection deal2lkit::ParsedQuadrature<2>
+  # In one space dimension, the given base formula is copied and scaled onto a
+  # given number of subintervals of length 1/repetitions. In more than one
+  # space dimension, the resulting quadrature formula is constructed in the
+  # usual way by building the tensor product of the respective iterated
+  # quadrature formula in one space dimension.
+  set Number of repetitions  = 1
+
+  # The number of quadrature points in each coordinate direction. (Avaible
+  # only for gauss otherwise it should be 0)
+  set Quadrature order       = 10
+
+  # Quadrature rule:gauss|midpoint|milne|simpson|trapez|weddle
+  set Quadrature to generate = gauss
+end
+
+subsection deal2lkit::ParsedQuadrature<3>
   # In one space dimension, the given base formula is copied and scaled onto a
   # given number of subintervals of length 1/repetitions. In more than one
   # space dimension, the resulting quadrature formula is constructed in the

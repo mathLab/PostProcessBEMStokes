@@ -273,10 +273,6 @@ namespace PostProcess
     add_parameter(prm, &post_process_wall_bool_0,"Post Process Wall 0 bool","true",
                   Patterns::Bool(),"Bool set to create Post Process wall 0.");
 
-    add_parameter(prm, &post_process_wall_bool_0,"Post Process box","false",
-                  Patterns::Bool(),"Create a box to examine the velocity field.");
-
-
     if (dim == 3)
       {
         add_parameter(prm, &point_box_1,"Lower left angle for outside box","-10,-10,-10",
@@ -1344,10 +1340,10 @@ namespace PostProcess
 
                 // pcout<<q_points[q]<<" : "<<external_grid[i]<<" : "<< R<<" : "<<R.norm_square()<<std::endl;
                 Assert(R.norm_square() > 1e-6, ExcMessage("Error, R norm zero"));
-                Tensor<1, dim> local_normal;
-                for (unsigned int idim = 0; idim < dim; ++idim)
-                  local_normal[idim] = local_normals[q][idim];
-                Tensor<2,dim> singular_ker = compute_singular_kernel(local_normal, W) ;
+                // Tensor<1, dim> local_normal;
+                // for (unsigned int idim = 0; idim < dim; ++idim)
+                //   local_normal[idim] = local_normals[q][idim];
+                Tensor<2,dim> singular_ker = compute_singular_kernel(normals[q], W) ;
                 // pcout<<normals[q].norm_square()<<" "<<G.norm_square()<<std::endl;
                 for (unsigned int idim = 0; idim < dim; ++idim)
                   {
@@ -1524,6 +1520,7 @@ namespace PostProcess
     wall_bool[6] = wall_bool_6;
     wall_bool[7] = wall_bool_7;
 
+    pcout<<"ORA QUI "<<post_process_wall_bool_0<<std::endl;
     post_process_wall_bool[0] = post_process_wall_bool_0;
     post_process_wall_bool[1] = post_process_wall_bool_1;
     post_process_wall_bool[2] = post_process_wall_bool_2;
@@ -1810,6 +1807,7 @@ namespace PostProcess
     // }
     if (dim ==2)
       {
+        pcout<<"QUI CAZZO "<<post_process_wall_bool[0]<<std::endl;
         if (post_process_wall_bool[0]==true)
           {
             pcout<<"Creating the single wall in 2d, we consder only post_process_wall 0"<<std::endl;
