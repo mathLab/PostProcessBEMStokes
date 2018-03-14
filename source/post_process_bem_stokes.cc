@@ -1493,9 +1493,9 @@ namespace PostProcess
     convert_bool_parameters();
 
     // We retrieve the two Finite Element Systems
-    fe_stokes = SP(parsed_fe_stokes());
-    fe_map = SP(parsed_fe_mapping());
-    grid_fe = SP(parsed_grid_fe());
+    fe_stokes = parsed_fe_stokes();
+    fe_map = parsed_fe_mapping();
+    grid_fe = parsed_grid_fe();
 
 
     // read_domain();
@@ -1606,7 +1606,7 @@ namespace PostProcess
     convert_bool_parameters();
 
     // We retrieve the Finite Element System for the exterior grid
-    grid_fe = SP(parsed_grid_fe());
+    grid_fe = parsed_grid_fe();
 
 
     pcout<<"read external grid"<<std::endl;

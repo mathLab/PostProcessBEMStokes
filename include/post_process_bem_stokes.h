@@ -184,9 +184,9 @@ namespace PostProcess
     Triangulation<dim-1, dim>   tria;
     Triangulation<2,dim> ext_tria;
 
-    shared_ptr<FiniteElement<dim-1, dim> > fe_stokes;
-    shared_ptr<FiniteElement<dim-1, dim> > fe_map;
-    shared_ptr<FiniteElement<2, dim> > grid_fe;
+    std::unique_ptr<FiniteElement<dim-1, dim> > fe_stokes;
+    std::unique_ptr<FiniteElement<dim-1, dim> > fe_map;
+    std::unique_ptr<FiniteElement<2, dim> > grid_fe;
 
     ParsedFiniteElement<dim-1, dim> parsed_fe_stokes;
     ParsedFiniteElement<dim-1, dim> parsed_fe_mapping;
