@@ -971,6 +971,7 @@ namespace PostProcess
     std::ifstream rv46(filename_rigid.c_str());
     rigid_velocities.block_read(rv46);
 
+    rigid_velocities.print(std::cout);
     Vector<double> omega;
 
     if (dim == 3)
@@ -1387,9 +1388,9 @@ namespace PostProcess
           {
             if (dim == 3)
               {
-                external_velocities[i+0*external_velocities.size()/dim] += rigid_velocities[4] * (0.+external_grid[i][2]) - rigid_velocities[5] * (0.+external_grid[i][1])-rigid_velocities[0];
-                external_velocities[i+1*external_velocities.size()/dim] += rigid_velocities[5] * (0.+external_grid[i][0]) - rigid_velocities[3] * (0.+external_grid[i][2])-rigid_velocities[1];
-                external_velocities[i+2*external_velocities.size()/dim] += rigid_velocities[3] * (0.+external_grid[i][1]) - rigid_velocities[4] * (0.+external_grid[i][0])-rigid_velocities[2];
+                external_velocities[i+0*external_velocities.size()/dim] += -rigid_velocities[4] * (0.+external_grid[i][2]) + rigid_velocities[5] * (0.+external_grid[i][1])-rigid_velocities[0];
+                external_velocities[i+1*external_velocities.size()/dim] += -rigid_velocities[5] * (0.+external_grid[i][0]) + rigid_velocities[3] * (0.+external_grid[i][2])-rigid_velocities[1];
+                external_velocities[i+2*external_velocities.size()/dim] += -rigid_velocities[3] * (0.+external_grid[i][1]) + rigid_velocities[4] * (0.+external_grid[i][0])-rigid_velocities[2];
               }
             else
               {
