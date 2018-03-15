@@ -127,9 +127,9 @@ int main (int argc, char **argv)
       // post_process.convert_bool_parameters();
 
       // We retrieve the two Finite Element Systems
-      post_process.fe_stokes = SP(new FESystem<dim-1, dim>(FE_Q<dim-1,dim> (degree),dim));
-      post_process.fe_map = SP(new FESystem<dim-1, dim>(FE_Q<dim-1,dim> (degree),dim));
-      post_process.grid_fe = SP(new FESystem<2, dim>(FE_Q<2,dim> (degree),dim));
+      post_process.fe_stokes = std::unique_ptr<FiniteElement<dim-1, dim> >(new FESystem<dim-1, dim>(FE_Q<dim-1,dim> (degree),dim));
+      post_process.fe_map = std::unique_ptr<FiniteElement<dim-1, dim> >(new FESystem<dim-1, dim>(FE_Q<dim-1,dim> (degree),dim));
+      post_process.grid_fe = std::unique_ptr<FiniteElement<2, dim> >(new FESystem<2, dim>(FE_Q<2,dim> (degree),dim));
 
       SphericalManifold<dim-1,dim> manifold;
       post_process.tria.set_all_manifold_ids(0);

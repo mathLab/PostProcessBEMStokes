@@ -126,9 +126,9 @@ int main (int argc, char **argv)
 
   post_process.read_input_triangulation(post_process.stored_results_path+"reference_tria","bin",post_process.tria);
 
-  post_process.fe_stokes = SP(post_process.parsed_fe_stokes());
-  post_process.fe_map = SP(post_process.parsed_fe_mapping());
-  post_process.grid_fe = SP(post_process.parsed_grid_fe());
+  post_process.fe_stokes = post_process.parsed_fe_stokes();
+  post_process.fe_map = post_process.parsed_fe_mapping();
+  post_process.grid_fe = post_process.parsed_grid_fe();
 
   post_process.create_grid_in_deal = true;
   post_process.n_rep_ext_wall_ref = 3;

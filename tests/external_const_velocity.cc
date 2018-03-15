@@ -107,9 +107,9 @@ int main (int argc, char **argv)
   post_process.convert_bool_parameters();
 
   // We retrieve the two Finite Element Systems
-  post_process.fe_stokes = SP(post_process.parsed_fe_stokes());
-  post_process.fe_map = SP(post_process.parsed_fe_mapping());
-  post_process.grid_fe = SP(post_process.parsed_grid_fe());
+  post_process.fe_stokes = post_process.parsed_fe_stokes();
+  post_process.fe_map = post_process.parsed_fe_mapping();
+  post_process.grid_fe = post_process.parsed_grid_fe();
 
   SphericalManifold<dim-1,dim> manifold;
   post_process.tria.set_all_manifold_ids(0);
