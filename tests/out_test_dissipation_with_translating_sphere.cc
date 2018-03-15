@@ -128,11 +128,11 @@ int main (int argc, char **argv)
       // We retrieve the two Finite Element Systems
       std::string fe_name_stokes = "FESystem<2,3>[FE_DGQ<2,3>(0)^3]";
       std::string fe_name_map = "FESystem<2,3>[FE_Q<2,3>(1)^3]";
-      post_process.fe_stokes = SP(FETools::get_fe_by_name<2,3> (fe_name_stokes));
-      post_process.fe_map = SP(FETools::get_fe_by_name<2,3> (fe_name_map));
-      post_process.grid_fe = SP(post_process.parsed_grid_fe());
-      post_process.box_fe_scalar = SP(post_process.parsed_box_fe_scalar());
-      post_process.box_fe_vector = SP(post_process.parsed_box_fe_vector());
+      post_process.fe_stokes = std::unique_ptr<FiniteElement<2,3> >(FETools::get_fe_by_name<2,3> (fe_name_stokes));
+      post_process.fe_map = std::unique_ptr<FiniteElement<2,3> >(FETools::get_fe_by_name<2,3> (fe_name_map));
+      post_process.grid_fe = post_process.parsed_grid_fe();
+      post_process.box_fe_scalar = post_process.parsed_box_fe_scalar();
+      post_process.box_fe_vector = post_process.parsed_box_fe_vector();
 
       // std::cout<<post_process.fe_stokes->get_name()<<std::endl;
       // std::cout<<post_process.fe_map->get_name()<<std::endl;
