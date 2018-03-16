@@ -139,8 +139,8 @@ int main (int argc, char **argv)
       post_process.extra_debug_info = false;
       post_process.create_grid_in_deal = false;
       post_process.create_ext_box_bool = true;
-      post_process.n_rep_ext_box_ref = 4;
-      post_process.point_box_1 = Point<dim> (-8.,-8.,-8.);
+      post_process.n_rep_ext_box_ref = 3;
+      post_process.point_box_1 = Point<dim> (-0.,-0.,-0.);
       post_process.point_box_2 = Point<dim> ( 8., 8., 8.);
       post_process.reflect_kernel=false;
       post_process.no_slip_kernel=false;
@@ -241,7 +241,7 @@ int main (int argc, char **argv)
 
       dissipated_energy *= 1.;
       double input_energy = 6.*numbers::PI;
-      if (std::fabs(input_energy-dissipated_energy)/input_energy < tol)
+      if (std::fabs(input_energy-8*dissipated_energy)/input_energy < tol)
         std::cout<<"OK DISSIPATED ENERGY"<<std::endl;
       else
         std::cout<<dissipated_energy<<" "<<input_energy<<std::endl;
