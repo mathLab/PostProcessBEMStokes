@@ -103,7 +103,7 @@ int main (int argc, char **argv)
   unsigned int max_degree = 1;
   const unsigned int dim =2;
 
-  std::cout<<"Test that the PPBEM is able to recover the Fundamental Solution outside"<<std::endl;
+  std::cout<<"Test that the PPBEM is able to recover the Fundamental Solution outside a domain"<<std::endl;
   // ParsedFunction<3,3> exact_solution_eig("Exact solution position",
   //         "x / (x*x + y*y + z*z)^0.5 ; y / (x*x + y*y + z*z)^0.5 ; z / (x*x + y*y + z*z)^0.5");
 

@@ -74,7 +74,6 @@ OK
 OK
 OK
 OK
-error : 0.999998  10 -25 0
 OK
 OK
 OK
@@ -94,9 +93,7 @@ OK
 OK
 OK
 OK
-error : 0.999998  -10 -22.5 0
 OK
-error : 1  -10 -25 0
 OK
 OK
 OK
@@ -152,10 +149,8 @@ OK
 OK
 OK
 OK
-error : 1  0 0 0
 OK
 OK
-error : 0.999997  0 0 0
 OK
 OK
 OK
@@ -177,7 +172,12 @@ OK
 OK
 OK
 OK
-error : 1  0 0 0
+OK
+OK
+OK
+OK
+OK
+OK
 OK
 OK
 OK
