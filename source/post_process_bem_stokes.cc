@@ -1521,7 +1521,7 @@ namespace PostProcess
     wall_bool[6] = wall_bool_6;
     wall_bool[7] = wall_bool_7;
 
-    pcout<<"ORA QUI "<<post_process_wall_bool_0<<std::endl;
+    // pcout<<"ORA QUI "<<post_process_wall_bool_0<<std::endl;
     post_process_wall_bool[0] = post_process_wall_bool_0;
     post_process_wall_bool[1] = post_process_wall_bool_1;
     post_process_wall_bool[2] = post_process_wall_bool_2;

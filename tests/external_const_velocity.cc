@@ -102,7 +102,9 @@ int main (int argc, char **argv)
   PostProcessBEMStokes<dim> post_process(MPI_COMM_WORLD);
 
   ParameterAcceptor::initialize(SOURCE_DIR "/parameters_test_box.prm","foo.prm");
+  // std::cout<<post_process.tria.n_levels()<<std::endl;
   post_process.read_input_triangulation("../../../tests/box/reference_tria","bin",post_process.tria);
+  // std::cout<<post_process.tria.n_levels()<<std::endl;
   post_process.add_box_to_tria(post_process.tria);
   post_process.convert_bool_parameters();
 
