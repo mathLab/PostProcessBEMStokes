@@ -1819,7 +1819,6 @@ namespace PostProcess
     // }
     if (dim ==2)
       {
-        pcout<<"QUI CAZZO "<<post_process_wall_bool[0]<<std::endl;
         if (post_process_wall_bool[0]==true)
           {
             pcout<<"Creating the single wall in 2d, we consder only post_process_wall 0"<<std::endl;
