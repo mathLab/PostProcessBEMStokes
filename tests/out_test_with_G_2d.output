@@ -1,4 +1,4 @@
-Test that the BEM is able to recover the Fundamental Solution outside
+Test that the PPBEM is able to recover the Fundamental Solution outside a domain
 Testing for degree = 1
 reading ../../../tests/box/reference_tria_2d.bin
 There are 20 degrees of freedom from the stokes system
@@ -10,7 +10,7 @@ Creating the single wall in 2d, we consder only post_process_wall 0
 Adding the wall to the tria
 Adding post process wall 0
 External grid, cells 64 , dofs 81
- Stokes Solution norms: forces 0.466897 0.744978 , velocities 0.113706 0.193741 
+ Stokes Solution norms: forces 0.466897 0.744978 , velocities 0.113706 0.193741
 reduce and output
 done txt
 OK

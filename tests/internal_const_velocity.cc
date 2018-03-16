@@ -147,7 +147,8 @@ int main (int argc, char **argv)
   post_process.real_stokes_forces.reinit(post_process.dh_stokes.n_dofs());
   post_process.real_velocities.reinit(post_process.dh_stokes.n_dofs());
   for (unsigned int i=0; i<post_process.dh_stokes.n_dofs(); ++i)
-    post_process.real_velocities[i]=1.;
+    // WE NEED THE MINUS ONE BECAUSE THE NORMALS ARE INVERTED FOR AN INTERNAL EVALUATION
+    post_process.real_velocities[i]=-1.;
   std::cout<<"computing"<<std::endl;
 
   post_process.compute_exterior_stokes_solution_on_grid();
@@ -155,12 +156,21 @@ int main (int argc, char **argv)
   post_process.reduce_output_grid_result(0);
   // post_process.external_velocities.print(std::cout);
   // if(post_process.external_velocities.linfty_norm())
+  // post_process.external_velocities.print(std::cout);
+
   for (unsigned int i=0; i<post_process.external_velocities.size()/dim; ++i)
-    if (std::abs(post_process.external_velocities[i])-1.<tol)
+    if (std::abs(post_process.external_velocities[i]-1.)<tol)
       std::cout<<"OK"<<std::endl;
     else
       std::cout<<post_process.external_velocities[i]<<" expected "<<1. <<std::endl;
-  for (unsigned int i=post_process.external_velocities.size()/dim; i<post_process.external_velocities.size(); ++i)
+  std::cout<<std::endl;
+  for (unsigned int i=post_process.external_velocities.size()/dim; i<post_process.external_velocities.size()*2/dim; ++i)
+    if (std::abs(post_process.external_velocities[i]-1.)<tol)
+      std::cout<<"OK"<<std::endl;
+    else
+      std::cout<<post_process.external_velocities[i]<<" expected "<<1. <<std::endl;
+  std::cout<<std::endl;
+  for (unsigned int i=2*post_process.external_velocities.size()/dim; i<post_process.external_velocities.size(); ++i)
     if (std::abs(post_process.external_velocities[i]-1.)<tol)
       std::cout<<"OK"<<std::endl;
     else

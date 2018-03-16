@@ -99,11 +99,11 @@ int main (int argc, char **argv)
 
   // const unsigned int degree = 1;
   // const unsigned int mapping_degree = 1;
-  double tol=3e-2;
+  double tol=304e-4;
   unsigned int max_degree = 1;
   const unsigned int dim =3;
 
-  std::cout<<"Test that the BEM is able to recover the Fundamental Solution outside"<<std::endl;
+  std::cout<<"Test that the BEM is able to recover the Fundamental Solution inside a domain"<<std::endl;
   // ParsedFunction<3,3> exact_solution_eig("Exact solution position",
   //         "x / (x*x + y*y + z*z)^0.5 ; y / (x*x + y*y + z*z)^0.5 ; z / (x*x + y*y + z*z)^0.5");
 

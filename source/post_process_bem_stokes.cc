@@ -27,6 +27,7 @@
 #include <deal.II/grid/grid_out.h>
 #include <deal.II/grid/tria_boundary_lib.h>
 #include <deal.II/grid/grid_generator.h>
+
 #include <deal.II/dofs/dof_handler.h>
 #include <deal.II/dofs/dof_accessor.h>
 #include <deal.II/dofs/dof_tools.h>
@@ -507,7 +508,12 @@ namespace PostProcess
     in.open (filename);
     gi.read_ucd(in);
     pcout<<"read"<<std::endl;
-    GridGenerator::merge_triangulations(triangulation_old, foo_ext_tria, triangulation);
+    Triangulation<dim-1, dim> save_tria_1;
+    GridGenerator::flatten_triangulation(triangulation_old,save_tria_1);
+    Triangulation<dim-1, dim> save_tria_2;
+    GridGenerator::flatten_triangulation(foo_ext_tria,save_tria_2);
+    GridGenerator::merge_triangulations(save_tria_1, save_tria_2, triangulation);
+    // GridGenerator::merge_triangulations(triangulation_old, foo_ext_tria, triangulation);
     pcout<<"merged"<<std::endl;
 
 
@@ -529,7 +535,12 @@ namespace PostProcess
         std::string filename = "post_process_wall_"+Utilities::int_to_string(i_wall)+".inp";
         in.open (filename);
         gi.read_ucd(in);
-        GridGenerator::merge_triangulations(triangulation_old, foo_ext_tria, triangulation);
+        Triangulation<2, dim> save_tria_1;
+        GridGenerator::flatten_triangulation(triangulation_old,save_tria_1);
+        Triangulation<2, dim> save_tria_2;
+        GridGenerator::flatten_triangulation(foo_ext_tria,save_tria_2);
+        GridGenerator::merge_triangulations(save_tria_1, save_tria_2, triangulation);
+        // GridGenerator::merge_triangulations(triangulation_old, foo_ext_tria, triangulation);
       }
     else
       {
