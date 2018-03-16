@@ -1,15 +1,15 @@
-Test that the BEM is able to recover the Fundamental Solution outside
+Test that the PPBEM is able to recover the Fundamental Solution outside a domain
 Testing for degree = 1
 reading ../../../tests/box/reference_tria.bin
-There are 1158 degrees of freedom
-1158 
+There are 1158 degrees of freedom from the stokes system
 read external grid
+Creating planes as external grid in dealii
 creating post process wall with id 0
 10 0 0
 Adding the wall to the tria
 Adding post process wall 0
 External grid, cells 16 , dofs 25
- Stokes Solution norms: forces 0.678743 3.4428 , velocities 0.139215 1.16744 
+ Stokes Solution norms: forces 0.678743 3.4428 , velocities 0.139215 1.16744
 reduce and output
 done txt
 OK

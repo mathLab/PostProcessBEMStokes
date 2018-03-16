@@ -99,18 +99,18 @@ int main (int argc, char **argv)
 
   // const unsigned int degree = 1;
   // const unsigned int mapping_degree = 1;
-  double tol=1e-1;
+  double tol=304e-4;
   unsigned int max_degree = 1;
-  const unsigned int dim =2;
+  const unsigned int dim =3;
 
-  std::cout<<"Test that the PPBEM is able to recover the Fundamental Solution outside a domain"<<std::endl;
+  std::cout<<"Test that the BEM is able to recover the Fundamental Solution inside a domain"<<std::endl;
   // ParsedFunction<3,3> exact_solution_eig("Exact solution position",
   //         "x / (x*x + y*y + z*z)^0.5 ; y / (x*x + y*y + z*z)^0.5 ; z / (x*x + y*y + z*z)^0.5");
 
 
   for (unsigned int degree=1; degree<=max_degree; degree++)
     {
-      Point<dim> source_point(0.3, 0.3);
+      Point<dim> source_point(1.3, 1.3, 1.3);
       std::cout<< "Testing for degree = "<<degree<<std::endl;
       PostProcessBEMStokes<dim> post_process(MPI_COMM_WORLD);
 
@@ -122,16 +122,15 @@ int main (int argc, char **argv)
       // PETScWrappers::MPI::Vector normal_vector_difference;
 
       // post_process.read_parameters(SOURCE_DIR "/parameters_test_3d_out.prm");
-      ParameterAcceptor::initialize(SOURCE_DIR "/parameters_test_2d_out.prm","foo.prm");
-      post_process.read_input_triangulation("../../../tests/box/reference_tria_2d","bin",post_process.tria);
-      // post_process.convert_bool_parameters();
+      ParameterAcceptor::initialize(SOURCE_DIR "/parameters_test_box.prm","foo.prm");
+      post_process.read_input_triangulation("../../../tests/box/reference_tria","bin",post_process.tria);
+      post_process.convert_bool_parameters();
 
       // We retrieve the two Finite Element Systems
-      post_process.fe_stokes = std::unique_ptr<FiniteElement<dim-1, dim> >(new FESystem<dim-1, dim>(FE_Q<dim-1,dim> (degree),dim));
-      post_process.fe_map = std::unique_ptr<FiniteElement<dim-1, dim> >(new FESystem<dim-1, dim>(FE_Q<dim-1,dim> (degree),dim));
-      post_process.grid_fe = std::unique_ptr<FiniteElement<2, dim> >(new FESystem<2, dim>(FE_Q<2,dim> (degree),dim));
-      post_process.reflect_kernel = false;
-      post_process.no_slip_kernel = false;
+      post_process.fe_stokes = post_process.parsed_fe_stokes();
+      post_process.fe_map = post_process.parsed_fe_mapping();
+      post_process.grid_fe = post_process.parsed_grid_fe();
+
       SphericalManifold<dim-1,dim> manifold;
       post_process.tria.set_all_manifold_ids(0);
       post_process.tria.set_manifold(0, manifold);
@@ -158,16 +157,17 @@ int main (int argc, char **argv)
       impose_G_as_trace_1(post_process, source_point, normals, post_process.real_stokes_forces);
       // std::cout<<post_process.real_stokes_forces.linfty_norm()<<std::endl;
       post_process.post_process_wall_bool[0] = true;
-      post_process.wall_positions[0] = Point<dim> (10.,0.);
-      post_process.wall_spans[0][0] = 5.25;
-      post_process.wall_spans[0][1] = 20.25;
+      post_process.wall_positions[0] = Point<dim> (0.,0.,0.);
+      post_process.wall_spans[0][0] = 1./std::sqrt(2.0);
+      post_process.wall_spans[0][1] = 1./std::sqrt(2.0);
+      post_process.wall_spans[0][2] = 0.;
+      post_process.n_rep_ext_wall_ref = 4;
       post_process.post_process_wall_bool[1] = false;
       post_process.post_process_wall_bool[2] = false;
+      post_process.post_process_wall_bool[3] = false;
 
 
       post_process.create_grid_in_deal = true;
-
-      post_process.n_rep_ext_wall_ref = 3;
       std::cout<<"read external grid"<<std::endl;
       post_process.read_external_grid(post_process.external_grid_filename, post_process.external_grid);
       post_process.compute_processor_properties();
@@ -176,18 +176,20 @@ int main (int argc, char **argv)
       std::cout<<"reduce and output"<<std::endl;
       post_process.reduce_output_grid_result(0);
 
-      Vector<double> G_ext(post_process.grid_dh.n_dofs()), G_vector_difference(post_process.grid_dh.n_dofs());
+      // Vector<double> G_ext(post_process.grid_dh.n_dofs()), G_vector_difference(post_process.grid_dh.n_dofs());
+      //
+      // impose_G_as_ext_velocity(post_process, source_point, G_ext);
 
-      impose_G_as_ext_velocity(post_process, source_point, G_ext);
-
-      for (unsigned int i=0 ; i<G_ext.size(); ++i)
+      for (unsigned int i=0 ; i<post_process.external_velocities.size(); ++i)
         {
-          G_vector_difference[i] = std::fabs(post_process.external_velocities[i] - G_ext[i]);
-          if (G_vector_difference[i]/std::fabs(G_ext[i]) > tol)
-            std::cout<<"relative error : "<<G_vector_difference[i]/std::fabs(G_ext[i])<<" mine : "<<post_process.external_velocities[i]<<" true : "<< G_ext[i]<<std::endl;
+          auto value = std::fabs(post_process.external_velocities[i]);
+          if (value > tol)
+            std::cout<<"relative error : "<<value <<" mine : "<<post_process.external_velocities[i]<<" true : "<< 0.0 <<std::endl;
           else
             std::cout<<"OK"<<std::endl;
         }
+
+
 
 
 
