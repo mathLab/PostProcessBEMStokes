@@ -982,7 +982,7 @@ namespace PostProcess
     std::ifstream rv46(filename_rigid.c_str());
     rigid_velocities.block_read(rv46);
 
-    rigid_velocities.print(std::cout);
+    // rigid_velocities.print(std::cout);
     Vector<double> omega;
 
     if (dim == 3)
