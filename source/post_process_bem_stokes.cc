@@ -645,9 +645,10 @@ namespace PostProcess
       }
     else
       {
-        pcout<<"Reading the external solution from "<< external_grid_filename <<std::endl;
+        pcout<<"Reading the external grid from "<< external_grid_filename <<std::endl;
         while (infile.good() && i<external_grid_dimension)
           {
+            // pcout<<ext_grid.size()<<" "<<i<<std::endl;
             for (unsigned int j=0; j<2; ++j)
               {
                 getline ( infile, instring, ' ');
@@ -660,6 +661,8 @@ namespace PostProcess
             // pcout<<ext_grid[i]<<std::endl;
             i=i+1;
           }
+          // pcout<<"bubu"<<std::endl;
+
       }
     // external_grid_dimension = i;
     // std::cout<<external_grid_dimension<<std::endl;
@@ -1619,10 +1622,10 @@ namespace PostProcess
     pcout<<stored_results_path+"reference_tria"<<std::endl;
     read_input_triangulation(stored_results_path+"reference_tria","bin",tria);
     pcout<<refine_distance_from_center<<" "<<wall_threshold<<" "<<refinement_center<<std::endl;
-    pcout<<"read external grid"<<std::endl;
-    read_external_grid(external_grid_filename, external_grid);
     pcout<<"reinit"<<std::endl;
     reinit();
+    pcout<<"read external grid"<<std::endl;
+    read_external_grid(external_grid_filename, external_grid);
     // pcout<<"mmmmm "<<dh_stokes.n_dofs()<<std::endl;
     pcout<<"body index set"<<std::endl;
     create_body_index_set();
