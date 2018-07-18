@@ -25,7 +25,7 @@
 #include <deal.II/grid/grid_generator.h>
 #include <deal.II/grid/grid_in.h>
 #include <deal.II/grid/grid_out.h>
-#include <deal.II/grid/tria_boundary_lib.h>
+// #include <deal.II/grid/tria_boundary_lib.h>
 #include <deal.II/grid/grid_generator.h>
 
 #include <deal.II/dofs/dof_handler.h>
@@ -1622,10 +1622,10 @@ namespace PostProcess
     pcout<<stored_results_path+"reference_tria"<<std::endl;
     read_input_triangulation(stored_results_path+"reference_tria","bin",tria);
     pcout<<refine_distance_from_center<<" "<<wall_threshold<<" "<<refinement_center<<std::endl;
-    pcout<<"reinit"<<std::endl;
-    reinit();
     pcout<<"read external grid"<<std::endl;
     read_external_grid(external_grid_filename, external_grid);
+    pcout<<"reinit"<<std::endl;
+    reinit();
     // pcout<<"mmmmm "<<dh_stokes.n_dofs()<<std::endl;
     pcout<<"body index set"<<std::endl;
     create_body_index_set();
@@ -1646,6 +1646,7 @@ namespace PostProcess
         //shape_velocities.sadd(0., 1./time_step, next_euler_vec, -1./time_step, euler_vec);
 
         pcout<< "Computing the exterior solution on the grid "  << std::endl;
+        pcout<< grid_dh.n_dofs()<<std::endl;
         pcout<< "There are " << external_grid.size() << " points, and "<<external_velocities.size()<<" velocity unknowns"<<std::endl;
         compute_real_forces_and_velocities();
         // external_grid.resize(1);
@@ -1785,8 +1786,8 @@ namespace PostProcess
 
     std::vector<Point<dim> > box_support_points(box_dh_vector.n_dofs());
     ext_grid.resize(box_dh_vector.n_dofs()/dim);
-    external_velocities.reinit(dim*external_grid_dimension);
-    mean_external_velocities.reinit(dim*external_grid_dimension);
+    // external_velocities.reinit(dim*external_grid_dimension);
+    // mean_external_velocities.reinit(dim*external_grid_dimension);
 
     DoFTools::map_dofs_to_support_points<dim,dim>( StaticMappingQ1<dim,dim>::mapping, box_dh_vector, box_support_points);
 
