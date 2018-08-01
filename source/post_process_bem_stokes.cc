@@ -730,10 +730,8 @@ namespace PostProcess
   template<int dim>
   void PostProcessBEMStokes<dim>::compute_processor_properties()
   {
-//    MPI_Comm_rank(comm, &rank);
-//    MPI_Comm_size(comm, &size);
-    rank = MPI::COMM_WORLD.Get_rank();
-    size = MPI::COMM_WORLD.Get_size();
+    MPI_Comm_rank(mpi_communicator, &rank);
+    MPI_Comm_size(mpi_communicator, &size);
     int rest;
     rest = external_grid_dimension % size;
     proc_external_dimension = external_grid_dimension / size;
@@ -1676,7 +1674,8 @@ namespace PostProcess
       }
     pcout<<"Computing the average on the stroke"<<std::endl;
     compute_average(start_frame, end_frame);
-    MPI::COMM_WORLD.Barrier();
+    MPI_Barrier(mpi_communicator);
+    MPI_Barrier(mpi_communicator);
 
 
   }
@@ -2028,9 +2027,9 @@ namespace PostProcess
   {
 
     Vector<double> ext_red_vel(external_velocities.size());
-    MPI::COMM_WORLD.Reduce(&external_velocities(0), &ext_red_vel(0),
+    MPI_Reduce(&external_velocities(0), &ext_red_vel(0),
                            external_velocities.size(), MPI_DOUBLE, MPI_SUM,
-                           0);
+                           0, mpi_communicator);
 
     pcout<<"Computing dissipation energy"<<std::endl;
     FEValues<dim> fe_values_box_scalar (*box_fe_scalar, quadrature_box,
@@ -2195,9 +2194,9 @@ namespace PostProcess
   void PostProcessBEMStokes<dim>::reduce_output_grid_result(const unsigned int frame)
   {
     Vector<double> ext_red_vel(external_velocities.size());
-    MPI::COMM_WORLD.Reduce(&external_velocities(0), &ext_red_vel(0),
+    MPI_Reduce(&external_velocities(0), &ext_red_vel(0),
                            external_velocities.size(), MPI_DOUBLE, MPI_SUM,
-                           0);
+                           0, mpi_communicator);
 
 
     if (rank==0)
@@ -2404,9 +2403,9 @@ namespace PostProcess
   {
     Vector<double> mean_red_vel(external_grid_dimension*dim);
     Vector<double> norm_mean_vel(external_grid_dimension);
-    MPI::COMM_WORLD.Reduce(&mean_external_velocities(0), &mean_red_vel(0),
+    MPI_Reduce(&mean_external_velocities(0), &mean_red_vel(0),
                            mean_external_velocities.size(), MPI_DOUBLE, MPI_SUM,
-                           0);
+                           0, mpi_communicator);
     mean_red_vel /= (final_frame-start_frame+1);
     if (rank==0)
       {
