@@ -646,6 +646,7 @@ namespace PostProcess
     else
       {
         pcout<<"Reading the external grid from "<< external_grid_filename <<std::endl;
+        ext_grid.resize(external_grid_dimension);
         while (infile.good() && i<external_grid_dimension)
           {
             // pcout<<ext_grid.size()<<" "<<i<<std::endl;
