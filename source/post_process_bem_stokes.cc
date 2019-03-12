@@ -99,9 +99,9 @@ namespace PostProcess
     mappingeul(NULL),
     rotation_matrix(3,3),
     wall_bool(8, false),
-    post_process_wall_bool(4, false),
-    wall_positions(4,Point<3>()),
-    wall_spans(4,std::vector<double>(3)),
+    post_process_wall_bool(5, false),
+    wall_positions(5,Point<3>()),
+    wall_spans(5,std::vector<double>(3)),
     time_step(0.1),
     mpi_communicator(mpi_commy),
     this_mpi_process(Utilities::MPI::this_mpi_process(mpi_communicator)),
@@ -169,6 +169,12 @@ namespace PostProcess
     add_parameter(prm, &run_3d, "Run 3d simulation", "true",
                   Patterns::Bool());
 
+    add_parameter(prm, &compute_force_dipole_matrices, "Compute cartesian force dipole moments", "true",
+                  Patterns::Bool());
+
+    add_parameter(prm, &max_momentum_order, "Maximum order of cartesian force dipole moment to be computed", "1",
+                  Patterns::Integer());
+
     // prm.declare_entry("Total number of frames","140",Patterns::Integer());
     //
     // prm.declare_entry("Run 2d simulation", "true",
@@ -204,6 +210,8 @@ namespace PostProcess
     add_parameter(prm, &create_grid_in_deal, "Create the grid inside the code","false", Patterns::Bool());
 
     add_parameter(prm, &create_ext_box_bool, "Create a full dim-D box","false", Patterns::Bool());
+
+    add_parameter(prm, &compute_dissipation_energy_bool, "Compute dissipation energy on external box","true", Patterns::Bool());
 
     add_parameter(prm, &extra_debug_info, "Print extra debug information", "false", Patterns::Bool());
 
@@ -292,6 +300,9 @@ namespace PostProcess
         add_parameter(prm, &post_process_wall_bool_3,"Post Process Wall 3 bool","false",
                       Patterns::Bool(),"Bool set to create Post Process wall 3.");
 
+        add_parameter(prm, &post_process_wall_bool_4,"Post Process Wall 4 bool","false",
+                      Patterns::Bool(),"Bool set to create Post Process wall 4.");
+
         add_parameter(prm, &(wall_spans[0]),"Wall 0 spans","10,0,10",
                       Patterns::List(Patterns::Double(),dim,dim),"List of the spans of the wall 0. If -1 we intend infinite.");
         // std::cout<<foo[2]<<std::endl;
@@ -302,6 +313,9 @@ namespace PostProcess
         add_parameter(prm, &(wall_spans[3]),"Wall 3 spans","1,1,-1",
                       Patterns::List(Patterns::Double(),dim,dim),"List of the spans of the wall 3. If -1 we intend infinite.");
 
+        add_parameter(prm, &(wall_spans[4]),"Wall 4 spans","1,1,-1",
+                      Patterns::List(Patterns::Double(),dim,dim),"List of the spans of the wall 3. If -1 we intend infinite.");
+
         add_parameter(prm, &wall_positions[0],"Wall center position wall 0","0,5,0",
                       Patterns::List(Patterns::Double(),dim,dim),"List of the positions of all the centers of the walls.");
         add_parameter(prm, &wall_positions[1],"Wall center position wall 1","0,-5,0",
@@ -309,6 +323,9 @@ namespace PostProcess
         add_parameter(prm, &wall_positions[2],"Wall center position wall 2","0,10,0",
                       Patterns::List(Patterns::Double(),dim,dim),"List of the positions of all the centers of the walls.");
         add_parameter(prm, &wall_positions[3],"Wall center position wall 3","0,10,0",
+                      Patterns::List(Patterns::Double(),dim,dim),"List of the positions of all the centers of the walls.");
+
+        add_parameter(prm, &wall_positions[4],"Wall center position wall 4","0,10,0",
                       Patterns::List(Patterns::Double(),dim,dim),"List of the positions of all the centers of the walls.");
 
         add_parameter(prm, &kernel_wall_position,"Kernel Wall center position","0,5,0",
@@ -487,9 +504,9 @@ namespace PostProcess
   //             }
   //         }
   //       if (cylinder_manifold)
-  //         triangulation.set_manifold(99, *cylinder_manifold);
+  //         triangulation.reset_manifold(99, *cylinder_manifold);
   //       else
-  //         triangulation.set_manifold(99);
+  //         triangulation.reset_manifold(99);
   //     }
   // }
   //
@@ -713,6 +730,7 @@ namespace PostProcess
 
     external_velocities.reinit(dim*external_grid_dimension);
     mean_external_velocities.reinit(dim*external_grid_dimension);
+    max_external_velocities.reinit(dim*external_grid_dimension);
     reference_support_points.resize(n_dofs_stokes);
     if (create_ext_box_bool)
       {
@@ -1312,6 +1330,8 @@ namespace PostProcess
     pcout<<" Stokes Solution norms: forces "<<real_stokes_forces.linfty_norm()<<" "<<real_stokes_forces.l2_norm()<<" , velocities "
          <<real_velocities.linfty_norm()<<" "<<real_velocities.l2_norm()<<" "<<std::endl;
     external_velocities=0.;
+    force_dipole_matrices.resize(max_momentum_order, FullMatrix<double> (dim,dim));
+    bool first_time = true;
     for (unsigned int i=proc_start; i<proc_end; ++i)
       {
         // std::cout<<i<<std::endl;
@@ -1359,6 +1379,22 @@ namespace PostProcess
                 //   local_normal[idim] = local_normals[q][idim];
                 Tensor<2,dim> singular_ker = compute_singular_kernel(normals[q], W) ;
                 // pcout<<normals[q].norm_square()<<" "<<G.norm_square()<<std::endl;
+
+                if (compute_force_dipole_matrices && first_time)
+                  {
+                    for (unsigned int im=1; im<=max_momentum_order; ++im)
+                      {
+
+                        for (unsigned int idim = 0; idim < dim; ++idim)
+                          {
+                            for (unsigned int jdim = 0; jdim < dim; ++jdim)
+                              {
+                                force_dipole_matrices[im-1][idim][jdim] += std::pow(q_points[q][idim],im) * stokes_local_forces[q](jdim) * fe_stokes_v.JxW(q);
+                              }
+                          }
+                      }
+
+                  }
                 for (unsigned int idim = 0; idim < dim; ++idim)
                   {
                     // HERE THE SIGNS APPEARS TO BE CORRECT.
@@ -1414,7 +1450,23 @@ namespace PostProcess
         for (unsigned j=0; j<dim; ++j)
           mean_external_velocities(i+j*external_velocities.size()/dim)+=external_velocities(i+j*external_velocities.size()/dim);
 
+        for (auto i = proc_start; i<proc_end; ++i)
+          {
+            double current_magnitude_1 = 0.;
+            double current_magnitude_2 = 0.;
+            for (unsigned int idim = 0; idim<dim; ++idim)
+              {
+                current_magnitude_1 += external_velocities[i+idim*external_grid_dimension]*external_velocities[i+idim*external_grid_dimension];
+                current_magnitude_2 += max_external_velocities[i+idim*external_grid_dimension]*max_external_velocities[i+idim*external_grid_dimension];
+              }
+            if (current_magnitude_1 > current_magnitude_2)
+              {
+                for (unsigned int idim = 0; idim<dim; ++idim)
+                  max_external_velocities[i+idim*external_grid_dimension] = external_velocities[i+idim*external_grid_dimension];
+              }
+          }
 
+        first_time = false;
       }
     // rigid_velocities.print(std::cout);
     // pcout<<external_grid[0]<<" "<<external_velocities[0]<<" "<<external_velocities[external_velocities.size()/dim/dim]<<" "<<external_velocities[external_velocities.size()/dim*2]<<" "<<std::endl;
@@ -1539,6 +1591,7 @@ namespace PostProcess
     post_process_wall_bool[1] = post_process_wall_bool_1;
     post_process_wall_bool[2] = post_process_wall_bool_2;
     post_process_wall_bool[3] = post_process_wall_bool_3;
+    post_process_wall_bool[4] = post_process_wall_bool_4;
 
   }
   // @sect4{BEMProblem::run}
@@ -1575,6 +1628,11 @@ namespace PostProcess
     grid_fe = parsed_grid_fe();
     box_fe_vector = parsed_box_fe_vector();
     box_fe_scalar = parsed_box_fe_scalar();
+
+    if (compute_force_dipole_matrices)
+      {
+        force_dipole_matrices.resize(max_momentum_order, FullMatrix<double> (dim, dim));
+      }
 
 
     // read_domain();
@@ -1620,7 +1678,7 @@ namespace PostProcess
     // We load the complete reference triangulation stored as a binary file.
     pcout<<stored_results_path+"reference_tria"<<std::endl;
     read_input_triangulation(stored_results_path+"reference_tria","bin",tria);
-    pcout<<refine_distance_from_center<<" "<<wall_threshold<<" "<<refinement_center<<std::endl;
+    // pcout<<refine_distance_from_center<<" "<<wall_threshold<<" "<<refinement_center<<std::endl;
     pcout<<"read external grid"<<std::endl;
     read_external_grid(external_grid_filename, external_grid);
     pcout<<"reinit"<<std::endl;
@@ -1661,7 +1719,7 @@ namespace PostProcess
         // evaluate_stokes_bie(external_grid, real_velocities, real_stokes_forces, external_velocities);
         // external_velocities.print(std::cout);
         compute_exterior_stokes_solution_on_grid();
-        if (create_ext_box_bool)
+        if (create_ext_box_bool && compute_dissipation_energy_bool)
           {
             compute_dissipation_energy();
           }
@@ -1689,50 +1747,59 @@ namespace PostProcess
   {
     pcout<<"Composing the flow field reconstructions to compute the average on the stroke"<<std::endl;
     // As first step we convert the bool parameters into vectors.
+    // read_parameters("../parameters.prm");
+    // pcout<<n_frames;
+    if (dim==2)
+      run_in_this_dimension=run_2d;
+    else if (dim==3)
+      run_in_this_dimension=run_3d;
+
+    if (run_in_this_dimension == false)
+      {
+        pcout << "Run in dimension " << dim
+              << " explicitly disabled in parameter file. "
+              << std::endl;
+        return;
+      }
+
+    // As first step we convert the bool parameters into vectors.
     convert_bool_parameters();
 
-    // We retrieve the Finite Element System for the exterior grid
+    // We retrieve the two Finite Element Systems
+    fe_stokes = parsed_fe_stokes();
+    fe_map = parsed_fe_mapping();
     grid_fe = parsed_grid_fe();
+    box_fe_vector = parsed_box_fe_vector();
+    box_fe_scalar = parsed_box_fe_scalar();
 
+    if (compute_force_dipole_matrices)
+      {
+        force_dipole_matrices.resize(max_momentum_order, FullMatrix<double> (dim, dim));
+      }
 
+    pcout<<"reading input tria"<<std::endl;
+    // We load the complete reference triangulation stored as a binary file.
+    pcout<<stored_results_path+"reference_tria"<<std::endl;
+    read_input_triangulation(stored_results_path+"reference_tria","bin",tria);
+    // pcout<<refine_distance_from_center<<" "<<wall_threshold<<" "<<refinement_center<<std::endl;
     pcout<<"read external grid"<<std::endl;
     read_external_grid(external_grid_filename, external_grid);
-
-    grid_dh.distribute_dofs(*grid_fe);
-    DoFRenumbering::component_wise(grid_dh);
-
-    box_dh_vector.distribute_dofs(*box_fe_vector);
-    DoFRenumbering::component_wise(box_dh_vector);
-
-    box_dh_scalar.distribute_dofs(*box_fe_scalar);
-
-    if (create_ext_box_bool)
-      {
-        mean_external_velocities.reinit(box_dh_vector.n_dofs());
-        external_velocities.reinit(box_dh_vector.n_dofs());
-        dissipation_energy.reinit(box_dh_scalar.n_dofs());
-        mean_dissipation_energy.reinit(box_dh_scalar.n_dofs());
-      }
-    else
-      {
-        mean_external_velocities.reinit(grid_dh.n_dofs());
-        external_velocities.reinit(grid_dh.n_dofs());
-      }
+    pcout<<"reinit"<<std::endl;
+    reinit();
     for (unsigned int frame=start_frame; frame<=end_frame; frame=frame+delta_frame)
       {
         std::string file_name_vel;
         file_name_vel = "stokes_exterior_" + Utilities::int_to_string(frame) + ".bin";
         std::ifstream rvel (file_name_vel.c_str());
         external_velocities.block_read(rvel);
-        if (create_ext_box_bool)
-          {
-            Assert(external_velocities.size()==box_dh_vector.n_dofs(), ExcInternalError());
-          }
-        else
-          Assert(external_velocities.size()==grid_dh.n_dofs(), ExcInternalError());
+        // if (create_ext_box_bool)
+        //   {
+        //     Assert(external_velocities.size()==box_dh_vector.n_dofs(), ExcInternalError());
+        //   }
+        // else
+        //   Assert(external_velocities.size()==grid_dh.n_dofs(), ExcInternalError());
         pcout<<"reducing frame "<< frame <<std::endl;
         mean_external_velocities.sadd(1.,1.,external_velocities);
-
         if (create_ext_box_bool)
           {
             std::string file_name_energy;
@@ -2012,6 +2079,7 @@ namespace PostProcess
     external_grid_dimension = grid_dh.n_dofs()/dim;
     external_velocities.reinit(dim*external_grid_dimension);
     mean_external_velocities.reinit(dim*external_grid_dimension);
+    max_external_velocities.reinit(dim*external_grid_dimension);
 
     std::vector<Point<dim> > grid_support_points(grid_dh.n_dofs());
     ext_grid.resize(grid_dh.n_dofs()/dim);
@@ -2029,8 +2097,8 @@ namespace PostProcess
 
     Vector<double> ext_red_vel(external_velocities.size());
     MPI_Reduce(&external_velocities(0), &ext_red_vel(0),
-                           external_velocities.size(), MPI_DOUBLE, MPI_SUM,
-                           0, mpi_communicator);
+               external_velocities.size(), MPI_DOUBLE, MPI_SUM,
+               0, mpi_communicator);
 
     pcout<<"Computing dissipation energy"<<std::endl;
     FEValues<dim> fe_values_box_scalar (*box_fe_scalar, quadrature_box,
@@ -2196,8 +2264,8 @@ namespace PostProcess
   {
     Vector<double> ext_red_vel(external_velocities.size());
     MPI_Reduce(&external_velocities(0), &ext_red_vel(0),
-                           external_velocities.size(), MPI_DOUBLE, MPI_SUM,
-                           0, mpi_communicator);
+               external_velocities.size(), MPI_DOUBLE, MPI_SUM,
+               0, mpi_communicator);
 
 
     if (rank==0)
@@ -2229,6 +2297,28 @@ namespace PostProcess
           }
         ofs_mean.close();
 
+        if (compute_force_dipole_matrices)
+          {
+
+            std::ofstream ofs_momentum;
+            std::string filename_momentum;
+
+            filename_momentum="force_dipole_matrices_"+Utilities::int_to_string(frame)+".txt";
+            ofs_momentum.open(filename_momentum, std::ofstream::out | std::ofstream::app);
+
+            for (unsigned int im=1; im<=max_momentum_order; ++im)
+              {
+                for (unsigned int idim=0; idim<dim; ++idim)
+                  {
+                    for (unsigned int jdim=0; jdim<dim; ++jdim)
+                      ofs_momentum<<force_dipole_matrices[im-1][idim][jdim]<<" ";
+                    ofs_momentum<<std::endl;
+                  }
+              }
+            ofs_momentum.close();
+
+
+          }
         // std::vector<std::vector<double> > vv(dim, std::vector<double> (external_grid_dimension));
         //
         // for(unsigned int i = 0; i<external_grid_dimension; ++i)
@@ -2403,11 +2493,15 @@ namespace PostProcess
   void PostProcessBEMStokes<dim>::compute_average(unsigned int start_frame, unsigned int final_frame)
   {
     Vector<double> mean_red_vel(external_grid_dimension*dim);
+    Vector<double> max_red_vel(external_grid_dimension*dim);
     Vector<double> norm_mean_vel(external_grid_dimension);
     MPI_Reduce(&mean_external_velocities(0), &mean_red_vel(0),
-                           mean_external_velocities.size(), MPI_DOUBLE, MPI_SUM,
-                           0, mpi_communicator);
-    mean_red_vel /= (final_frame-start_frame+1);
+               mean_external_velocities.size(), MPI_DOUBLE, MPI_SUM,
+               0, mpi_communicator);
+    MPI_Reduce(&max_external_velocities(0), &max_red_vel(0),
+               max_external_velocities.size(), MPI_DOUBLE, MPI_SUM,
+               0, mpi_communicator);
+    // mean_red_vel /= (final_frame-start_frame+1);
     if (rank==0)
       {
 
@@ -2464,11 +2558,12 @@ namespace PostProcess
         DataOut<2, DoFHandler<2, dim> > dataout;
 
         dataout.attach_dof_handler(grid_dh);
-        dataout.add_data_vector(mean_red_vel, std::vector<std::string > (dim,"ext_vel"), DataOut<2, DoFHandler<2, dim> >::type_dof_data, data_component_interpretation);
+        dataout.add_data_vector(mean_red_vel, std::vector<std::string > (dim,"mean_ext_vel"), DataOut<2, DoFHandler<2, dim> >::type_dof_data, data_component_interpretation);
+        dataout.add_data_vector(max_red_vel, std::vector<std::string > (dim,"max_ext_vel"), DataOut<2, DoFHandler<2, dim> >::type_dof_data, data_component_interpretation);
         dataout.build_patches();
 
         std::string filename;
-        filename="exterior_mean_velocity_frame_"+Utilities::int_to_string(start_frame)+"_"+Utilities::int_to_string(final_frame)+".vtu";
+        filename="exterior_mean_max_velocity_frame_"+Utilities::int_to_string(start_frame)+"_"+Utilities::int_to_string(final_frame)+".vtu";
         std::ofstream file_vector(filename.c_str());
 
         dataout.write_vtu(file_vector);
@@ -2487,10 +2582,11 @@ namespace PostProcess
 
         dataout.attach_dof_handler(box_dh_vector);
         dataout.add_data_vector(mean_red_vel, std::vector<std::string > (dim,"ext_vel"), DataOut<dim, DoFHandler<dim, dim> >::type_dof_data, data_component_interpretation);
+        dataout.add_data_vector(max_red_vel, std::vector<std::string > (dim,"max_ext_vel"), DataOut<dim, DoFHandler<dim, dim> >::type_dof_data, data_component_interpretation);
         dataout.build_patches();
 
         std::string filename;
-        filename="exterior_mean_velocity_frame_"+Utilities::int_to_string(start_frame)+"_"+Utilities::int_to_string(final_frame)+".vtu";
+        filename="exterior_mean_max_velocity_frame_"+Utilities::int_to_string(start_frame)+"_"+Utilities::int_to_string(final_frame)+".vtu";
         std::ofstream file_vector(filename.c_str());
 
         dataout.write_vtu(file_vector);

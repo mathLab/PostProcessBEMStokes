@@ -251,6 +251,7 @@ namespace PostProcess
     Vector<double> rigid_puntual_velocities;
     Vector<double> external_velocities;
     Vector<double> mean_external_velocities;
+    Vector<double> max_external_velocities;
     Vector<double> original_normal_vector;
 
     Vector<double> dissipation_energy;
@@ -287,6 +288,8 @@ namespace PostProcess
     bool wall_bool_7;
 
     double refine_distance_from_center, wall_threshold;
+
+    bool compute_dissipation_energy_bool;
     Point<dim> refinement_center;
 
     bool read_box_bool, read_cyl_bool, cylinder_manifold_bool;
@@ -302,6 +305,7 @@ namespace PostProcess
     bool post_process_wall_bool_1;
     bool post_process_wall_bool_2;
     bool post_process_wall_bool_3;
+    bool post_process_wall_bool_4;
 
     bool reflect_kernel;
     bool no_slip_kernel;
@@ -313,6 +317,11 @@ namespace PostProcess
     unsigned int delta_frame;
 
     unsigned int kernel_wall_orientation;
+
+    bool compute_force_dipole_matrices;
+    unsigned int max_momentum_order;
+    std::vector<FullMatrix<double> > force_dipole_matrices;
+
     Point<dim> kernel_wall_position;
 
     std::vector<std::vector<double> > wall_spans;

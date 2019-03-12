@@ -35,10 +35,10 @@ int main (int argc, char **argv)
       deallog.depth_console (3);
       // PostProcessBEMStokes<2> post_process_2d(degree);
       // post_process_2d.run(start_frame, end_frame);
-      std::string pname = "parameters_" + std::to_string(DIMENSION) + ".prm";
-      std::string pname2 = "used_parameters_" + std::to_string(DIMENSION) + ".prm";
+      std::string pname = "parameters_" + std::to_string(DDDIMENSION) + ".prm";
+      std::string pname2 = "used_parameters_" + std::to_string(DDDIMENSION) + ".prm";
 
-      PostProcessBEMStokes<DIMENSION> post_process(MPI_COMM_WORLD);
+      PostProcessBEMStokes<DDDIMENSION> post_process(MPI_COMM_WORLD);
       ParameterAcceptor::initialize(pname, pname2);
       if (compose==1)
         post_process.compose(start_frame, end_frame);
