@@ -123,7 +123,7 @@ namespace PostProcess
     parsed_fe_stokes("Finite Element Stokes","FESystem<1,2>[FE_Q<1,2>(1)^2]","u,u",2),//,"FESystem<2,3>[FE_Q<2,3>(1)^3]","u,u,u",dim),
     parsed_fe_mapping("Finite Element Mapping","FESystem<1,2>[FE_Q<1,2>(1)^2]","u,u",2),//,"FESystem<2,3>[FE_Q<2,3>(1)^3]","u,u,u",dim),
     parsed_grid_fe("Finite Element External Grid","FESystem<2,2>[FE_Q<2,2>(1)^2]","u,u",2),
-    parsed_box_fe_vector("Finite Element External Box Vector","FESystem<3,3>[FE_Q<2,2>(1)^2]","u,u",2),
+    parsed_box_fe_vector("Finite Element External Box Vector","FESystem<2,2>[FE_Q<2,2>(1)^2]","u,u",2),
     parsed_box_fe_scalar("Finite Element External Box Scalar","FE_Q(1)"),
     map_dh(tria),
     dh_stokes(tria),

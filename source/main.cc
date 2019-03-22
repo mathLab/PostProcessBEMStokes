@@ -46,6 +46,8 @@ int main (int argc, char **argv)
         post_process.run(start_frame, end_frame);
       else
         AssertThrow(false, ExcNotImplemented());
+
+      post_process.pcout<<"EXECUTION OK"<<std::endl;
     }
   catch (std::exception &exc)
     {
