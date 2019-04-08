@@ -134,6 +134,8 @@ namespace PostProcess
     rotation_matrix(2,2),
     wall_bool(8, false),
     post_process_wall_bool(4, false),
+    reflect_kernel(false),
+    no_slip_kernel(false),
     wall_positions(4,Point<2>()),
     wall_spans(4,std::vector<double>(2)),
     time_step(0.1),
