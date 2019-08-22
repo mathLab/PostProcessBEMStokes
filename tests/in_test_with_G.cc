@@ -3,8 +3,6 @@
 #include <deal.II/grid/grid_out.h>
 #include <iostream>
 #include <fstream>
-#include <deal2lkit/error_handler.h>
-#include <deal2lkit/parsed_function.h>
 #include <deal2lkit/parameter_acceptor.h>
 #include <deal2lkit/utilities.h>
 #include <deal.II/fe/mapping_fe_field.h>
@@ -15,7 +13,9 @@
 #include <deal.II/lac/petsc_parallel_vector.h>
 #include <deal.II/lac/slepc_solver.h>
 
+using namespace dealii;
 using namespace deal2lkit;
+
 template<int my_dim>
 void impose_G_as_velocity(const PostProcess::PostProcessBEMStokes<my_dim> &pp_bem, const Point<my_dim> &source, Vector<double> &G_velocities)
 {
@@ -122,7 +122,7 @@ int main (int argc, char **argv)
       // PETScWrappers::MPI::Vector normal_vector_difference;
 
       // post_process.read_parameters(SOURCE_DIR "/parameters_test_3d_out.prm");
-      ParameterAcceptor::initialize(SOURCE_DIR "/parameters_test_box.prm","foo.prm");
+      deal2lkit::ParameterAcceptor::initialize(SOURCE_DIR "/parameters_test_box.prm","foo.prm");
       post_process.read_input_triangulation("../../../tests/box/reference_tria","bin",post_process.tria);
       post_process.convert_bool_parameters();
 
@@ -144,7 +144,7 @@ int main (int argc, char **argv)
 
 
 
-      post_process.mappingeul = SP(new MappingQ<dim-1, dim>(degree));
+      post_process.mappingeul = std::make_shared<MappingQ<dim-1, dim> >(degree);
 
       post_process.real_stokes_forces.reinit(post_process.dh_stokes.n_dofs());
       post_process.real_velocities.reinit(post_process.dh_stokes.n_dofs());
@@ -194,7 +194,7 @@ int main (int argc, char **argv)
 
 
 
-      post_process.tria.set_manifold(0);
+      post_process.tria.reset_manifold(0);
 
     }
 

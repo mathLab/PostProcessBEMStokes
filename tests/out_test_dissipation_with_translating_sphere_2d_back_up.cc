@@ -99,7 +99,7 @@ int main (int argc, char **argv)
 
   // const unsigned int degree = 1;
   // const unsigned int mapping_degree = 1;
-  double tol=5e-1;
+  double tol=1e-1;
   unsigned int max_degree = 1;
   const unsigned int dim =3;
 
@@ -126,22 +126,21 @@ int main (int argc, char **argv)
       post_process.convert_bool_parameters();
 
       // We retrieve the two Finite Element Systems
-      std::string fe_name_stokes = "FESystem<2,3>[FE_DGQ<2,3>(0)^3]";
-      std::string fe_name_map = "FESystem<2,3>[FE_Q<2,3>(1)^3]";
-      post_process.fe_stokes = std::unique_ptr<FiniteElement<2,3> >(FETools::get_fe_by_name<2,3> (fe_name_stokes));
-      post_process.fe_map = std::unique_ptr<FiniteElement<2,3> >(FETools::get_fe_by_name<2,3> (fe_name_map));
+      std::string fe_name_stokes = "FESystem<2,3>[FE_DGQ<1,2>(1)^3]";
+      std::string fe_name_map = "FESystem<2,3>[FE_Q<1,2>(1)^3]";
+      post_process.fe_stokes = std::unique_ptr<FiniteElement<1,2> >(FETools::get_fe_by_name<1,2> (fe_name_stokes));
+      post_process.fe_map = std::unique_ptr<FiniteElement<1,2> >(FETools::get_fe_by_name<1,2> (fe_name_map));
       post_process.grid_fe = post_process.parsed_grid_fe();
       post_process.box_fe_scalar = post_process.parsed_box_fe_scalar();
       post_process.box_fe_vector = post_process.parsed_box_fe_vector();
 
-      // std::cout<<post_process.fe_stokes->get_name()<<std::endl;
-      // std::cout<<post_process.fe_map->get_name()<<std::endl;
+
       post_process.extra_debug_info = false;
       post_process.create_grid_in_deal = false;
       post_process.create_ext_box_bool = true;
-      post_process.n_rep_ext_box_ref = 3;
-      post_process.point_box_1 = Point<dim> (-0.,-0.,-0.);
-      post_process.point_box_2 = Point<dim> ( 8., 8., 8.);
+      post_process.n_rep_ext_box_ref = 5;
+      post_process.point_box_1 = Point<dim> (-8.,-8.);
+      post_process.point_box_2 = Point<dim> ( 8., 8.);
       post_process.reflect_kernel=false;
       post_process.no_slip_kernel=false;
       post_process.velocity_kind="Total";
@@ -150,6 +149,9 @@ int main (int argc, char **argv)
       //                G_trace_1_ex(post_process.dh_stokes.n_dofs()), trace_1_vector_difference(post_process.dh_stokes.n_dofs());
 
 
+
+
+      post_process.mappingeul = std::make_shared<MappingQ<dim-1, dim> >(degree);
 
       // std::cout<<"baba"<<std::endl;
       // std::cout<<post_process.real_stokes_forces.linfty_norm()<<std::endl;
@@ -167,13 +169,7 @@ int main (int argc, char **argv)
       post_process.read_external_grid(post_process.external_grid_filename, post_process.external_grid);
 
       post_process.read_input_triangulation("../../../tests/box/reference_tria","bin",post_process.tria);
-      // post_process.read_input_triangulation("../../../../BEMStokes/build_sphere/reference_tria","bin",post_process.tria);
-
       post_process.reinit();
-      post_process.euler_vec.reinit(post_process.map_dh.n_dofs());
-      VectorTools::get_position_vector(post_process.map_dh,post_process.euler_vec);
-      post_process.mappingeul = std::make_shared<MappingFEField<dim-1, dim> >(post_process.map_dh,post_process.euler_vec);
-
       post_process.real_stokes_forces.reinit(post_process.dh_stokes.n_dofs());
       post_process.real_velocities.reinit(post_process.dh_stokes.n_dofs());
       post_process.original_normal_vector.reinit(post_process.dh_stokes.n_dofs());
@@ -241,8 +237,8 @@ int main (int argc, char **argv)
 
       dissipated_energy *= 1.;
       double input_energy = 6.*numbers::PI;
-      if (std::fabs(input_energy-8*dissipated_energy)/input_energy < tol)
-        std::cout<<"OK DISSIPATED ENERGY"<<std::endl;
+      if (std::fabs(input_energy-dissipated_energy)/input_energy < tol)
+        std::cout<<"OK "<<dissipated_energy<<" "<<input_energy<<std::endl;
       else
         std::cout<<dissipated_energy<<" "<<input_energy<<std::endl;
       // Vector<double> G_ext(post_process.grid_dh.n_dofs()), G_vector_difference(post_process.grid_dh.n_dofs());

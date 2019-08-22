@@ -84,7 +84,7 @@ namespace PostProcess
   using namespace deal2lkit;
 
   template <int dim>
-  class PostProcessBEMStokes : public ParameterAcceptor
+  class PostProcessBEMStokes : public deal2lkit::ParameterAcceptor
   {
   public:
     /// The simple constructor following the rules of ParameterAcceptor from deal2lkit.
@@ -210,7 +210,7 @@ namespace PostProcess
     DoFHandler<dim, dim> box_dh_scalar;
 
 
-    ConstraintMatrix cm_stokes;
+    AffineConstraints<double> cm_stokes;
 
     std::string input_grid_base_name;
     std::string input_grid_format;
@@ -307,10 +307,10 @@ namespace PostProcess
     bool post_process_wall_bool_3;
     bool post_process_wall_bool_4;
 
+    std::vector<bool> post_process_wall_bool;
+
     bool reflect_kernel;
     bool no_slip_kernel;
-
-    std::vector<bool> post_process_wall_bool;
 
     std::vector<Point<dim> > wall_positions;
 
