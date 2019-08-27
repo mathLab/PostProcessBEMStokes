@@ -1,4 +1,7 @@
 #include "post_process_bem_stokes.h"
+#include <deal.II/base/mpi.h>
+
+using namespace dealii;
 
 // This is the main function of this program. It is exactly like all previous
 // tutorial programs:
@@ -10,8 +13,8 @@ int main (int argc, char **argv)
       using namespace dealii;
       using namespace PostProcess;
 
-      const unsigned int degree = 1;
-      const unsigned int mapping_degree = 1;
+      // const unsigned int degree = 1;
+      // const unsigned int mapping_degree = 1;
 
       unsigned int start_frame = 0;
       unsigned int end_frame = 139;
@@ -39,7 +42,7 @@ int main (int argc, char **argv)
       std::string pname2 = "used_parameters_" + std::to_string(DDDIMENSION) + ".prm";
 
       PostProcessBEMStokes<DDDIMENSION> post_process(MPI_COMM_WORLD);
-      ParameterAcceptor::initialize(pname, pname2);
+      deal2lkit::ParameterAcceptor::initialize(pname, pname2);
       if (compose==1)
         post_process.compose(start_frame, end_frame);
       else if (compose == 0 )

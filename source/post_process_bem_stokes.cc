@@ -778,14 +778,14 @@ namespace PostProcess
   }
 
   template<>
-  void PostProcessBEMStokes<2>::update_rotation_matrix(FullMatrix<double> &rotation, const Vector<double> omega, const double dt)
+  void PostProcessBEMStokes<2>::update_rotation_matrix(FullMatrix<double> &, const Vector<double> , const double )
   {
     AssertThrow(false, ExcImpossibleInDim(2));
 
   }
 
   template<int dim>
-  void PostProcessBEMStokes<dim>::update_rotation_matrix(FullMatrix<double> &rotation, const Vector<double> omega, const double dt)
+  void PostProcessBEMStokes<dim>::update_rotation_matrix(FullMatrix<double> &rotation, const Vector<double> omega, const double )
   {
     pcout << "Updating the rotation matrix using quaternions" << std::endl;
     // Firstly we need to reconstruct the original quaternion given the rotation matrix
@@ -1311,7 +1311,7 @@ namespace PostProcess
 
     FEValues<dim-1,dim> fe_stokes_v(*mappingeul, *fe_stokes, quadrature,
                                     update_values |
-                                    update_cell_normal_vectors |
+                                    update_normal_vectors |
                                     update_quadrature_points |
                                     update_JxW_values);
 
@@ -1692,7 +1692,7 @@ namespace PostProcess
     compute_processor_properties();
     pcout<<"compute euler vector"<<std::endl;
     compute_euler_vector(euler_vec, start_frame);
-    mappingeul = SP(new MappingFEField<dim-1, dim>(map_dh,euler_vec));
+    mappingeul = std::make_shared<MappingFEField<dim-1, dim> >(map_dh,euler_vec);
     for (unsigned int i=start_frame; i<=end_frame; i=i+delta_frame)
       {
         if (i>start_frame)

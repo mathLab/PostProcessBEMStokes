@@ -2,8 +2,6 @@
 #include <deal.II/grid/grid_out.h>
 #include <iostream>
 #include <fstream>
-#include <deal2lkit/error_handler.h>
-#include <deal2lkit/parsed_function.h>
 #include <deal2lkit/parameter_acceptor.h>
 #include <deal2lkit/utilities.h>
 #include <deal.II/fe/mapping_fe_field.h>
@@ -15,7 +13,9 @@
 #include <deal.II/lac/slepc_solver.h>
 #include "post_process_bem_stokes.h"
 
+using namespace dealii;
 using namespace deal2lkit;
+
 template<int my_dim>
 void impose_G_as_velocity(const PostProcess::PostProcessBEMStokes<my_dim> &pp_bem, const Point<my_dim> &source, Vector<double> &G_velocities)
 {
@@ -111,7 +111,7 @@ int main (int argc, char **argv)
   Point<dim> source_point(0.3, 0.3, 0.3);
   std::cout<< "Testing for degree = "<<degree<<std::endl;
   PostProcessBEMStokes<dim> post_process(MPI_COMM_WORLD);
-  ParameterAcceptor::initialize(SOURCE_DIR "/parameters_test_box.prm","foo.prm");
+  deal2lkit::ParameterAcceptor::initialize(SOURCE_DIR "/parameters_test_box.prm","foo.prm");
   post_process.convert_bool_parameters();
   post_process.post_process_wall_bool[0] = true;
   post_process.wall_positions[0][0] = 0.;
@@ -141,7 +141,7 @@ int main (int argc, char **argv)
   post_process.create_body_index_set();
   std::cout<<"compute proc props"<<std::endl;
   post_process.compute_processor_properties();
-  post_process.mappingeul = SP(new MappingQ<dim-1, dim>(degree));
+  post_process.mappingeul = std::make_shared<MappingQ<dim-1, dim> >(degree);
 
 
   post_process.real_stokes_forces.reinit(post_process.dh_stokes.n_dofs());
