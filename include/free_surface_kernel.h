@@ -1,6 +1,6 @@
 // ---------------------------------------------------------------------
 //
-// Copyright (C) 2014 - 2018 by the BEMStokes authors.
+// Copyright (C) 2014 - 2019 by the BEMStokes authors.
 //
 // This file is part of the BEMStokes library.
 //
